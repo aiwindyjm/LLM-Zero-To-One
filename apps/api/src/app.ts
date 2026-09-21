@@ -141,7 +141,9 @@ export async function createApp(options: AppOptions) {
     return {
       attempt,
       feedback: rubric[input.stepId].feedback,
-      note: '这里只验证客观题与实验记录；你的解释已保存，尚未经过独立评审。',
+      note: input.explanation
+        ? '这里只验证客观题与实验记录；你的解释已保存，尚未经过独立评审。'
+        : '这里只验证客观题与实验记录；未记录解释。',
     };
   });
   app.get('/api/runs', async () => store.listRuns());

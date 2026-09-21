@@ -1,5 +1,5 @@
-FROM node:24-bookworm-slim AS node-runtime
-FROM python:3.12-slim-bookworm AS runtime
+FROM node:24-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS node-runtime
+FROM python:3.12-slim-bookworm@sha256:782412e85d0f0984994c290652577d4018aff08145c85b262bb63dc0c7522254 AS runtime
 COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node
 COPY --from=node-runtime /usr/local/lib/node_modules /usr/local/lib/node_modules
 RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && npm install --global pnpm@10.34.5 && pip install --no-cache-dir uv==0.12.17 && groupadd --gid 1000 node && useradd --uid 1000 --gid node --create-home node
