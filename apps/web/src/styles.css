@@ -1548,6 +1548,140 @@ details > summary::marker {
   }
 }
 /* Data lesson keeps long token sequences within the learning column. */
+.lesson-orientation {
+  padding: 0 0 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.lesson-heading .step-motivation {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+.orientation-stages {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.orientation-stages button {
+  text-align: left;
+  padding: 10px 4px;
+  font-size: 14px;
+  border-bottom: 2px solid var(--border);
+}
+.orientation-stages button[aria-current],
+.orientation-python .active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.orientation-stages button span {
+  margin-right: 8px;
+}
+.lesson-orientation h2 {
+  font-size: 20px;
+  margin: 20px 0 8px;
+}
+.lesson-orientation p {
+  line-height: 1.8;
+  margin: 12px 0;
+}
+.orientation-contexts,
+.continuation-example,
+.orientation-cycle,
+.training-sentence,
+.training-pair,
+.teaching-vocabulary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.orientation-contexts button,
+.training-sentence button,
+.teaching-vocabulary button {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.lesson-orientation button[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.continuation-example {
+  padding: 20px 0 4px;
+  font-size: 20px;
+}
+.continuation-example strong {
+  color: var(--axis-c);
+}
+.orientation-cycle {
+  padding: 16px 0;
+  font-size: 14px;
+}
+.training-pair {
+  padding: 20px 0;
+}
+.training-pair > div {
+  display: grid;
+  gap: 8px;
+}
+.training-pair small {
+  color: var(--muted);
+}
+.training-pair strong {
+  font-size: 20px;
+}
+.teaching-vocabulary button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.orientation-python {
+  padding: 16px;
+  background: var(--code-bg);
+  overflow-x: auto;
+}
+.orientation-check {
+  border: 0;
+  padding: 0;
+  margin: 16px 0;
+}
+.orientation-check legend {
+  margin-bottom: 8px;
+}
+.orientation-check label {
+  display: flex;
+  align-items: start;
+  gap: 8px;
+  padding: 6px 0;
+}
+.orientation-check input {
+  margin-top: 5px;
+}
+.orientation-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+.orientation-notes {
+  font-size: 14px;
+  color: var(--muted);
+  margin-top: 12px;
+}
+.orientation-boundary {
+  border-left: 3px solid var(--axis-t);
+  padding-left: 12px;
+}
+@media (max-width: 600px) {
+  .orientation-stages {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .continuation-example,
+  .training-pair strong {
+    font-size: 18px;
+  }
+}
 .sidebar-heading select {
   width: 100%;
   min-width: 0;

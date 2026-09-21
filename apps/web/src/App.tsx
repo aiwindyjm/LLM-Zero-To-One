@@ -173,6 +173,12 @@ export default function App() {
     if (code) next.set('code', code.id);
     if (targetFile) next.set('file', targetFile);
     if (anchorId) next.set('anchor', anchorId);
+    if (
+      code &&
+      targetView === 'source' &&
+      data.lesson.steps.find((entry) => entry.id === stepId)?.orientation
+    )
+      next.set('intro', '3');
     setParams(next);
     setLeftDrawer(false);
     setSelectedKnowledge(undefined);
@@ -332,7 +338,11 @@ export default function App() {
       key={`${lessonId}-${lessonVersion}-${step.id}`}
       catalog={data}
       step={step}
-      selectedKnowledge={selectedKnowledge || anchor.knowledgeId}
+      selectedKnowledge={
+        step.orientation && Number(params.get('intro') || 0) < 3
+          ? step.orientation.knowledgeId
+          : selectedKnowledge || anchor.knowledgeId
+      }
     />
   );
   const resize = (side: 'left' | 'right', delta: number) =>

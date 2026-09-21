@@ -160,6 +160,12 @@ export function validateContent(root: string, lessonId?: string, lessonVersion?:
   const knowledgeIds = new Set(catalog.knowledge.map((item) => item.id));
   const stepIds = new Set(steps.map((step) => step.id));
   for (const step of steps) {
+    if (
+      step.orientation &&
+      (!step.orientation.check.choices.includes(step.orientation.check.answer) ||
+        !step.knowledgeIds.includes(step.orientation.knowledgeId))
+    )
+      throw new Error(`Invalid orientation check: ${step.id}`);
     if (!assessments[step.id] || !step.choices.includes(assessments[step.id].answer))
       throw new Error(`Missing assessment: ${step.id}`);
     ensureUnique(

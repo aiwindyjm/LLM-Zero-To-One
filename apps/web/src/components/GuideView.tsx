@@ -14,6 +14,8 @@ import { Markdown } from './Markdown';
 import { CodeLines, type SourcePayload } from './SourceView';
 import { LearningDiagram } from './LearningDiagram';
 import { Button } from './ui/button';
+import { useSearchParams } from 'react-router';
+import { LessonOrientation } from './LessonOrientation';
 
 function Assessment({ step, onExperiment }: { step: LearningStep; onExperiment: () => void }) {
   const { lesson, experiment } = useLesson();
@@ -159,6 +161,11 @@ export function GuideView({
   experiment: ReactNode;
 }) {
   const { experiment: definition } = useLesson();
+  const [params, setParams] = useSearchParams();
+  const stage = [0, 1, 2, 3].includes(Number(params.get('intro')))
+    ? Number(params.get('intro'))
+    : 0;
+  const ready = !step.orientation || stage === 3;
   const reference = step.code.find((code) => code.id === anchor.codeId)!;
   const selected = { ...reference, startLine: anchor.startLine, endLine: anchor.endLine };
   const source = useQuery({
@@ -180,74 +187,94 @@ export function GuideView({
           <h1>{step.title.slice(5)}</h1>
         </div>
         <p>{step.diagram.prompt}</p>
+        {step.motivation && <p className="step-motivation">{step.motivation}</p>}
       </header>
-      {definition.id === 'data-trace' ? (
-        <DataDiagram
-          step={step}
-          anchor={anchor}
-          onAnchor={onAnchor}
-          run={run}
-          previewLength={previewLength}
-        />
-      ) : (
-        <LearningDiagram
-          key={`${step.id}-${run?.id || 'illustration'}`}
-          step={step}
-          anchor={anchor}
-          onAnchor={onAnchor}
-          run={run}
-          previewLength={previewLength}
+      {step.orientation && (
+        <LessonOrientation
+          content={step.orientation}
+          stage={stage}
+          onStage={(value) => {
+            const next = new URLSearchParams(params);
+            next.set('intro', String(value));
+            setParams(next, { replace: true });
+          }}
         />
       )}
-      <section className="linked-source" aria-label="对应源码">
-        <div className="code-card-heading">
-          <span>
-            <code>{reference.file}</code> · L{anchor.startLine}–{anchor.endLine}
-          </span>
-          <button onClick={() => onSource(selected)}>
-            完整源码 <ArrowUpRight size={14} />
-          </button>
-        </div>
-        {snippet ? (
-          <CodeLines
-            content={snippet}
-            startLine={anchor.startLine}
-            selection={selected}
-            revealSelection={false}
-            onSelect={(line) => {
-              const target = step.diagram.anchors.find(
-                (item) =>
-                  item.codeId === reference.id && line >= item.startLine && line <= item.endLine,
-              );
-              if (target) onAnchor(target);
-            }}
-          />
-        ) : (
-          <p>{source.error?.message || '读取固定源码…'}</p>
-        )}
-      </section>
-      <details className="full-explanation">
-        <summary>展开原理与实现细节</summary>
-        <Markdown>{step.explanation}</Markdown>
-        {step.code.map((code) => (
-          <button className="source-reference" key={code.id} onClick={() => onSource(code)}>
-            {code.symbol} · L{code.startLine} <ArrowUpRight size={14} />
-          </button>
-        ))}
-      </details>
-      <Assessment key={step.id} step={step} onExperiment={onExperiment} />
+      {ready && (
+        <>
+          {definition.id === 'data-trace' ? (
+            <DataDiagram
+              step={step}
+              anchor={anchor}
+              onAnchor={onAnchor}
+              run={run}
+              previewLength={previewLength}
+            />
+          ) : (
+            <LearningDiagram
+              key={`${step.id}-${run?.id || 'illustration'}`}
+              step={step}
+              anchor={anchor}
+              onAnchor={onAnchor}
+              run={run}
+              previewLength={previewLength}
+            />
+          )}
+          <section className="linked-source" aria-label="对应源码">
+            <div className="code-card-heading">
+              <span>
+                <code>{reference.file}</code> · L{anchor.startLine}–{anchor.endLine}
+              </span>
+              <button onClick={() => onSource(selected)}>
+                完整源码 <ArrowUpRight size={14} />
+              </button>
+            </div>
+            {snippet ? (
+              <CodeLines
+                content={snippet}
+                startLine={anchor.startLine}
+                selection={selected}
+                revealSelection={false}
+                onSelect={(line) => {
+                  const target = step.diagram.anchors.find(
+                    (item) =>
+                      item.codeId === reference.id &&
+                      line >= item.startLine &&
+                      line <= item.endLine,
+                  );
+                  if (target) onAnchor(target);
+                }}
+              />
+            ) : (
+              <p>{source.error?.message || '读取固定源码…'}</p>
+            )}
+          </section>
+          <details className="full-explanation">
+            <summary>展开原理与实现细节</summary>
+            <Markdown>{step.explanation}</Markdown>
+            {step.code.map((code) => (
+              <button className="source-reference" key={code.id} onClick={() => onSource(code)}>
+                {code.symbol} · L{code.startLine} <ArrowUpRight size={14} />
+              </button>
+            ))}
+          </details>
+          <Assessment key={step.id} step={step} onExperiment={onExperiment} />
+        </>
+      )}
       {experiment}
-      <div className="lesson-footer">
-        <span>
-          {definition.id === 'data-trace'
-            ? '原创微型文本 · 教学词表 · 未训练语言模型'
-            : '合成 ID · 随机权重，本课验证计算流程'}
-        </span>
-        <Button onClick={onNext}>
-          {index === total - 1 ? '回顾这节课' : '下一步'}
-          <ArrowRight size={16} />
-        </Button>
-      </div>
+      {ready && (
+        <div className="lesson-footer">
+          <span>
+            {definition.id === 'data-trace'
+              ? '原创微型文本 · 教学词表 · 未训练语言模型'
+              : '合成 ID · 随机权重，本课验证计算流程'}
+          </span>
+          <Button onClick={onNext}>
+            {index === total - 1 ? '回顾这节课' : '下一步'}
+            <ArrowRight size={16} />
+          </Button>
+        </div>
+      )}
     </article>
   );
 }

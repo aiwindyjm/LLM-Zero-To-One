@@ -35,6 +35,24 @@ export const learningStepSchema = z.object({
   knowledgeIds: z.array(z.string()),
   sourceIds: z.array(z.string()),
   explanation: z.string(),
+  motivation: z.string().optional(),
+  orientation: z
+    .object({
+      knowledgeId: z.string(),
+      stages: z
+        .array(z.object({ label: z.string(), title: z.string(), body: z.string() }))
+        .length(4),
+      contexts: z.array(z.object({ prefix: z.string(), continuation: z.string() })).min(2),
+      pieces: z.array(z.object({ text: z.string(), id: z.number().int().nonnegative() })).min(3),
+      note: z.string(),
+      check: z.object({
+        question: z.string(),
+        choices: z.array(z.string()).min(2),
+        answer: z.string(),
+        feedback: z.string(),
+      }),
+    })
+    .optional(),
   input: z.string(),
   output: z.string(),
   question: z.string(),
