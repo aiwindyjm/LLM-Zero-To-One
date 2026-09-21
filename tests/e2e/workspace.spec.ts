@@ -1,5 +1,40 @@
 import { test, expect } from '@playwright/test';
 
+test('first lesson connects real language tasks to next-token training before arrays', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto('/?step=input&view=guide');
+  await expect(page.getByRole('heading', { name: '先问：为什么需要程序处理语言？' })).toBeVisible();
+  await expect(page.locator('.linked-source')).toHaveCount(0);
+  await page.getByRole('button', { name: '把要求整理成行动', exact: true }).click();
+  await expect(page.locator('.task-example')).toContainText('阅读 → 比较 → 准备讨论');
+  await page.screenshot({ path: 'output/playwright/lesson-problem-desktop.png' });
+  await page.getByRole('button', { name: '继续：规则的边界', exact: true }).click();
+  await expect(page.locator('.rule-variants')).toContainText('规则漏掉');
+  await page.getByRole('button', { name: '继续：规模化学习', exact: true }).click();
+  await page.getByRole('button', { name: '了', exact: true }).click();
+  await expect(page.locator('.training-pair')).toContainText('今天 下雨');
+  await page.getByRole('radio', { name: '因为产品最终只需要把句子续写下去', exact: true }).check();
+  await expect(page.getByRole('status')).toContainText('产品目标不只是在句尾续写');
+  await page
+    .getByRole('radio', { name: '已有文本能自动提供上文和实际后续，减少逐条人工标注', exact: true })
+    .check();
+  await expect(page.getByRole('status')).toContainText('可规模化的监督信号');
+  await page.getByRole('button', { name: '继续：变成数字', exact: true }).click();
+  await expect(page.locator('.orientation-python')).toContainText('ids = [12, 5, 9]');
+  await page.getByRole('button', { name: '继续：走到源码', exact: true }).click();
+  await expect(page.locator('.linked-source')).toContainText('idx.size()');
+  await page.reload();
+  await expect(page.getByRole('heading', { name: '现在，才来到模型的输入' })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: '1现实目标', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: '先问：为什么需要程序处理语言？' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: 'output/playwright/lesson-problem-mobile.png' });
+});
+
 test('diagram, source, evidence and inline experiment form one learning loop', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
@@ -80,7 +115,7 @@ test('five diagrams support narrow drawers, keyboard interaction and legacy resu
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/?step=input&view=guide');
+  await page.goto('/?step=input&view=guide&intro=4');
   const token = page.getByRole('button', { name: '序列 1，位置 0，ID 0', exact: true });
   await token.focus();
   await page.keyboard.press('ArrowRight');
@@ -111,6 +146,9 @@ test('five diagrams support narrow drawers, keyboard interaction and legacy resu
       json: {
         run: {
           id: 'legacy',
+          lessonId: 'nanochat-forward',
+          lessonVersion: '1.0.0',
+          experimentId: 'forward-trace',
           status: 'succeeded',
           preset: 'cpu',
           sequenceLength: 8,
@@ -122,4 +160,44 @@ test('five diagrams support narrow drawers, keyboard interaction and legacy resu
   await page.goto('/?step=embedding&view=guide&run=legacy');
   await expect(page.getByRole('button', { name: '实测回放' })).toBeDisabled();
   await expect(page.getByText(/这条旧记录只保存了形状/)).toBeVisible();
+});
+
+test('second lesson links real-code anchors, scoped experiments and saved predictions', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto('/');
+  await page.getByLabel('选择课程').selectOption('nanochat-data@1.0.0');
+  await expect(page).toHaveURL(/lesson=nanochat-data/);
+  await expect(page.locator('.data-diagram')).toBeVisible();
+  await page.getByRole('button', { name: '词表 · BPE', exact: true }).click();
+  await expect(page.locator('.linked-source')).toContainText('mergeable_ranks');
+  await page.getByRole('button', { name: '打开实验', exact: true }).click();
+  await page.getByRole('button', { name: '运行实验', exact: true }).click();
+  await expect(page.getByRole('heading', { name: '观察结果' })).toBeVisible();
+  await page.getByRole('button', { name: '实测回放', exact: true }).click();
+  await expect(page.locator('.data-document')).toContainText('Test fixture');
+  await page.goto('/?lesson=nanochat-data&version=1.0.0&step=targets');
+  await page.getByRole('button', { name: '序列 1 位置 1 输入 11', exact: true }).click();
+  await expect(page.locator('.data-pair')).toContainText('目标');
+  await expect(page.locator('.linked-source')).toContainText('row_buffer');
+  const sourceBox = await page.locator('.linked-source').boundingBox();
+  expect(sourceBox!.y + sourceBox!.height).toBeLessThan(768);
+  await page.screenshot({ path: 'output/playwright/v0.3-targets-desktop.png' });
+  await page.getByRole('radio', { name: '[11, 23, 7]', exact: true }).check();
+  await page.getByLabel('选择验收实验').selectOption({ index: 1 });
+  await page.getByRole('button', { name: '检查预测', exact: true }).click();
+  await expect(page.locator('.feedback')).toContainText('未记录解释');
+  await page.reload();
+  await expect(page.locator('.sidebar-bottom')).toContainText('1 / 3');
+  await page.getByLabel('选择课程').selectOption('nanochat-forward@1.0.0');
+  await expect(page.locator('.sidebar-bottom')).toContainText('/ 5');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/?lesson=nanochat-data&version=1.0.0&step=targets');
+  const token = page.getByRole('button', { name: '序列 1 位置 1 输入 11', exact: true });
+  await token.focus();
+  await page.keyboard.press('Enter');
+  await expect(token).toHaveAttribute('aria-pressed', 'true');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: 'output/playwright/v0.3-targets-mobile.png' });
 });

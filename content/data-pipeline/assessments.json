@@ -1,0 +1,14 @@
+{
+  "tokenize": {
+    "answer": "Token ID 是词表索引，不是字符编号",
+    "feedback": "Token ID 只在特定词表中有意义；字节级 BPE 的 Token 不保证与字符或单词一一对应。"
+  },
+  "batch": {
+    "answer": "(2, 9)",
+    "feedback": "每行 9 个索引提供 8 对相邻的输入和目标，两个最终张量都是 (2,8)。"
+  },
+  "targets": {
+    "answer": "[11, 23, 7]",
+    "feedback": "目标取原始行从第二项开始：inputs=[BOS,11,23]，targets=[11,23,7]。"
+  }
+}

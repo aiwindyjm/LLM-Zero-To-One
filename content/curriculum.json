@@ -12,9 +12,10 @@
     "id": "data",
     "title": "02 · 文本与数据管道",
     "objective": "理解分词、数据集、批次和下一个 Token 目标。",
-    "status": "planned",
+    "status": "available",
     "files": ["nanochat/tokenizer.py", "nanochat/dataset.py", "nanochat/dataloader.py"],
-    "prerequisites": ["overview"]
+    "prerequisites": ["overview"],
+    "lessonId": "nanochat-data"
   },
   {
     "id": "representation",

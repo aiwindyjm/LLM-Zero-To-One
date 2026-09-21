@@ -52,5 +52,23 @@
     "type": "paper",
     "relevance": "提供 Attention、残差和前馈层的原始背景，不作为 nanochat 每个实现细节的证明。",
     "verifiedAt": "2026-09-20"
+  },
+  {
+    "id": "nanochat-tokenizer",
+    "title": "nanochat · tokenizer",
+    "author": "Andrej Karpathy and contributors",
+    "url": "https://github.com/karpathy/nanochat/blob/92d63d4e8bb4df75c3b71618f31ddde2378b2bcd/nanochat/tokenizer.py",
+    "type": "source",
+    "relevance": "第二课的编码、文档边界与批次切片的真实实现依据。",
+    "verifiedAt": "2026-09-21"
+  },
+  {
+    "id": "nanochat-dataloader",
+    "title": "nanochat · dataloader",
+    "author": "Andrej Karpathy and contributors",
+    "url": "https://github.com/karpathy/nanochat/blob/92d63d4e8bb4df75c3b71618f31ddde2378b2bcd/nanochat/dataloader.py",
+    "type": "source",
+    "relevance": "第二课的编码、文档边界与批次切片的真实实现依据。",
+    "verifiedAt": "2026-09-21"
   }
 ]

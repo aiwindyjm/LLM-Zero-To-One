@@ -42,6 +42,100 @@ async function headers(application: Awaited<ReturnType<typeof create>>) {
 }
 
 describe('local API', () => {
+  it('scopes Tutor history and applies the run limit within each course', async () => {
+    const application = await create();
+    application.store.saveMessage('nanochat-data', '1.0.0', 'tokenize', 'user', 'data question');
+    application.store.saveMessage('nanochat-data', '2.0.0', 'tokenize', 'user', 'future question');
+    application.store.saveMessage('nanochat-forward', '1.0.0', 'input', 'user', 'forward question');
+    const messages = await application.app.inject({
+      url: '/api/tutor/messages?lessonId=nanochat-data&lessonVersion=1.0.0&stepId=tokenize',
+    });
+    expect(messages.json().map((entry: { text: string }) => entry.text)).toEqual(['data question']);
+    expect(
+      (
+        await application.app.inject({
+          url: '/api/tutor/messages?lessonId=nanochat-data&stepId=input',
+        })
+      ).statusCode,
+    ).toBe(404);
+    application.store.createRun({
+      ...request,
+      lessonId: 'nanochat-data',
+      experimentId: 'data-trace',
+    });
+    for (let i = 0; i < 55; i++) application.store.createRun(request);
+    expect(application.store.listRuns('nanochat-data', '1.0.0')).toHaveLength(1);
+    expect(application.store.listRuns('nanochat-forward', '1.0.0')).toHaveLength(50);
+  });
+  it('isolates course progress, run history and assessment evidence', async () => {
+    const application = await create();
+    const auth = await headers(application);
+    const second = { ...request, lessonId: 'nanochat-data', experimentId: 'data-trace' };
+    const query = '?lessonId=nanochat-data&lessonVersion=1.0.0';
+    expect((await application.app.inject({ url: '/api/lessons' })).json()).toHaveLength(2);
+    expect(
+      (await application.app.inject({ url: '/api/catalog' + query })).json().lesson.steps,
+    ).toHaveLength(3);
+    expect(
+      (await application.app.inject({ url: '/api/catalog?lessonId=missing' })).statusCode,
+    ).toBe(404);
+    expect(
+      (
+        await application.app.inject({
+          url: '/api/catalog?lessonId=nanochat-data&lessonVersion=9.0.0',
+        })
+      ).statusCode,
+    ).toBe(404);
+    const invalid = await application.app.inject({
+      method: 'POST',
+      url: '/api/runs',
+      headers: auth,
+      payload: { ...second, experimentId: 'forward-trace' },
+    });
+    expect(invalid.statusCode).toBe(400);
+    const response = await application.app.inject({
+      method: 'POST',
+      url: '/api/runs',
+      headers: auth,
+      payload: second,
+    });
+    expect(response.statusCode).toBe(201);
+    const runId = response.json().id;
+    await expect.poll(() => application.store.getRun(runId)?.status).toBe('succeeded');
+    expect((await application.app.inject({ url: '/api/runs' })).json()).toHaveLength(0);
+    expect((await application.app.inject({ url: '/api/runs' + query })).json()).toHaveLength(1);
+    const reject = await application.app.inject({
+      method: 'POST',
+      url: '/api/assessments',
+      headers: auth,
+      payload: {
+        lessonId: request.lessonId,
+        lessonVersion: request.lessonVersion,
+        stepId: 'input',
+        answer: '(2, 8)',
+        runId,
+      },
+    });
+    expect(reject.statusCode).toBe(400);
+    const accepted = await application.app.inject({
+      method: 'POST',
+      url: '/api/assessments',
+      headers: auth,
+      payload: {
+        lessonId: second.lessonId,
+        lessonVersion: second.lessonVersion,
+        stepId: 'batch',
+        answer: '(2, 9)',
+        runId,
+      },
+    });
+    expect(accepted.statusCode).toBe(200);
+    expect(accepted.json().attempt.objectivePassed).toBe(true);
+    expect((await application.app.inject({ url: '/api/progress' })).json().steps).toHaveLength(0);
+    expect(
+      (await application.app.inject({ url: '/api/progress' + query })).json().steps[0].status,
+    ).toBe('verified');
+  });
   it('accepts optional reflection and rejects evidence from a different sequence length', async () => {
     const application = await create();
     const auth = await headers(application);

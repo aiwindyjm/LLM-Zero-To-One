@@ -15,6 +15,7 @@ jobs:
       - run: docker compose build app
       - run: docker compose up -d --wait
       - run: docker compose exec -T app pnpm experiment:verify
+      - run: docker compose exec -T app pnpm experiment:verify --data
       - run: docker compose exec -T app /opt/runner/bin/python -m pytest runner/tests -q
       - run: docker compose exec -T app pnpm exec tsx scripts/container-smoke.ts
       - run: docker compose restart app
@@ -52,8 +53,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm experiment:setup --cpu
       - run: pnpm experiment:verify
+      - run: pnpm experiment:verify --data
       - run: ~/.local/share/llm-zero-to-one/venv/bin/python -m pytest runner/tests -q
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: real-cpu-evidence
-          path: .local/validation/cpu.json
+          path: .local/validation/*cpu.json

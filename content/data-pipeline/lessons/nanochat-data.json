@@ -1,0 +1,184 @@
+{
+  "id": "nanochat-data",
+  "version": "1.0.0",
+  "title": "文本如何变成训练批次",
+  "summary": "文本 → 教学词表编码 → BOS 与定长批次 → 错位输入/目标。先建立监督信号，再进入模型训练。",
+  "estimatedMinutes": 30,
+  "commit": "92d63d4e8bb4df75c3b71618f31ddde2378b2bcd",
+  "steps": [
+    {
+      "id": "tokenize",
+      "title": "01 · 分词：文本不是整数列表",
+      "subtitle": "文本 → Token ID",
+      "objective": "区分字符、UTF-8 字节、Token 与词表索引；解释编码和解码。",
+      "prerequisites": [],
+      "code": [
+        {
+          "id": "data-encode",
+          "repository": "https://github.com/karpathy/nanochat",
+          "commit": "92d63d4e8bb4df75c3b71618f31ddde2378b2bcd",
+          "file": "nanochat/tokenizer.py",
+          "symbol": "RustBPETokenizer.encode",
+          "startLine": 96,
+          "endLine": 124
+        },
+        {
+          "id": "data-vocab",
+          "repository": "https://github.com/karpathy/nanochat",
+          "commit": "92d63d4e8bb4df75c3b71618f31ddde2378b2bcd",
+          "file": "nanochat/tokenizer.py",
+          "symbol": "RustBPETokenizer.train_from_iterator",
+          "startLine": 42,
+          "endLine": 60
+        }
+      ],
+      "knowledgeIds": ["data-token", "data-bos"],
+      "sourceIds": ["nanochat-tokenizer"],
+      "explanation": "输入是 Python 字符串，输出是词表中的整数索引。Token 不保证对应一个字、一个词或一个 Unicode 字符。真实实现先用 rustbpe 学习合并规则，再构建 tiktoken 编码器。\n\n本实验只用两段原创短文训练 280 项教学词表；它不是 nanochat 的生产词表，也不是第一课的 256 项合成词表。完整字符串可解码还原，单个 Token 则可能只含一个 UTF-8 字符的一部分字节。运行不下载远程词表。",
+      "input": "两段原创文本",
+      "output": "两条变长 Token ID 列表",
+      "question": "对于基于字节的 BPE，哪个说法成立？",
+      "choices": [
+        "每个 Token 永远对应一个汉字",
+        "Token ID 是词表索引，不是字符编号",
+        "Token ID 越大，词义越重要"
+      ],
+      "experimentId": "data-trace",
+      "diagram": {
+        "kind": "tokenize",
+        "prompt": "一段 Python 字符串如何变成模型能接收的索引？",
+        "anchors": [
+          {
+            "id": "encode",
+            "label": "批量编码",
+            "codeId": "data-encode",
+            "knowledgeId": "data-token",
+            "startLine": 109,
+            "endLine": 114
+          },
+          {
+            "id": "vocab",
+            "label": "词表从哪里来",
+            "codeId": "data-vocab",
+            "knowledgeId": "data-token",
+            "startLine": 50,
+            "endLine": 59
+          }
+        ]
+      }
+    },
+    {
+      "id": "batch",
+      "title": "02 · 批次：为什么多取一个位置",
+      "subtitle": "文档 → B × (T+1)",
+      "objective": "理解文档边界、BOS、批次轴与定长裁切。",
+      "prerequisites": ["tokenize"],
+      "code": [
+        {
+          "id": "data-capacity",
+          "repository": "https://github.com/karpathy/nanochat",
+          "commit": "92d63d4e8bb4df75c3b71618f31ddde2378b2bcd",
+          "file": "nanochat/dataloader.py",
+          "symbol": "tokenizing_distributed_data_loader_with_state_bos_bestfit",
+          "startLine": 98,
+          "endLine": 120
+        },
+        {
+          "id": "data-pack",
+          "repository": "https://github.com/karpathy/nanochat",
+          "commit": "92d63d4e8bb4df75c3b71618f31ddde2378b2bcd",
+          "file": "nanochat/dataloader.py",
+          "symbol": "best-fit packing and cropping",
+          "startLine": 123,
+          "endLine": 151
+        }
+      ],
+      "knowledgeIds": ["data-batch", "data-bos"],
+      "sourceIds": ["nanochat-dataloader", "nanochat-tokenizer"],
+      "explanation": "每行先准备 T+1 个索引，才能组成 T 对相邻的输入与目标。B 是同时处理的行数，T 是每行要预测的位置数。\n\n上游加载器从 Parquet 的 text 列读取文档，编码时在文档开头添加 BOS。它采用 best-fit 装箱；没有完整文档能放进剩余空间时裁切最短文档，不补零。每行从 BOS 开始，但较短文档也可能被拼在同一行。实验只替换 Parquet 文件发现为临时原创样本；编码、装箱、裁切与错位均调用原实现。",
+      "input": "变长 Token ID 文档",
+      "output": "row_buffer: (B, T+1)",
+      "question": "B=2、T=8 时，错位前的 row_buffer 形状是什么？",
+      "choices": ["(2, 8)", "(2, 9)", "(9, 2)"],
+      "experimentId": "data-trace",
+      "diagram": {
+        "kind": "batch",
+        "prompt": "要得到 8 对输入和目标，每行需要多少个索引？",
+        "anchors": [
+          {
+            "id": "capacity",
+            "label": "T + 1 容量",
+            "codeId": "data-capacity",
+            "knowledgeId": "data-batch",
+            "startLine": 98,
+            "endLine": 100
+          },
+          {
+            "id": "bos",
+            "label": "添加文档边界",
+            "codeId": "data-capacity",
+            "knowledgeId": "data-bos",
+            "startLine": 104,
+            "endLine": 109
+          },
+          {
+            "id": "crop",
+            "label": "装箱与裁切",
+            "codeId": "data-pack",
+            "knowledgeId": "data-batch",
+            "startLine": 146,
+            "endLine": 151
+          }
+        ]
+      }
+    },
+    {
+      "id": "targets",
+      "title": "03 · 目标：向右错开一个位置",
+      "subtitle": "同一行 → inputs 与 targets",
+      "objective": "逐位置配对输入和下一个 Token 目标，区分标签与模型预测。",
+      "prerequisites": ["batch"],
+      "code": [
+        {
+          "id": "data-shift",
+          "repository": "https://github.com/karpathy/nanochat",
+          "commit": "92d63d4e8bb4df75c3b71618f31ddde2378b2bcd",
+          "file": "nanochat/dataloader.py",
+          "symbol": "input/target shift",
+          "startLine": 153,
+          "endLine": 161
+        }
+      ],
+      "knowledgeIds": ["data-target"],
+      "sourceIds": ["nanochat-dataloader"],
+      "explanation": "inputs 取原始行除最后一个位置，targets 取除第一个位置。两者形状都是 (B,T)，但同一列的目标来自原始行的下一个位置。对位置 t 的预测只能利用因果约束允许的输入前缀。\n\n目标来自文本，不是模型生成的答案。训练时每个位置都能贡献监督信号；推理时最后位置的输出用于继续生成。当前实验不创建 GPT、不计算 Loss、不反向传播。下一课再把这些目标接到模型输出上。",
+      "input": "row_buffer: (B,T+1)",
+      "output": "inputs, targets: (B,T)",
+      "question": "原始行是 [BOS, 11, 23, 7]，对应的 targets 是什么？",
+      "choices": ["[BOS, 11, 23]", "[11, 23, 7]", "[23, 7, BOS]"],
+      "experimentId": "data-trace",
+      "diagram": {
+        "kind": "targets",
+        "prompt": "选一个位置：模型在这里应该预测哪个 Token？",
+        "anchors": [
+          {
+            "id": "inputs",
+            "label": "输入去掉最后一项",
+            "codeId": "data-shift",
+            "knowledgeId": "data-target",
+            "startLine": 154,
+            "endLine": 154
+          },
+          {
+            "id": "targets",
+            "label": "目标去掉第一项",
+            "codeId": "data-shift",
+            "knowledgeId": "data-target",
+            "startLine": 155,
+            "endLine": 155
+          }
+        ]
+      }
+    }
+  ]
+}

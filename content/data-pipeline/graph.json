@@ -1,0 +1,130 @@
+{
+  "nodes": [
+    {
+      "id": "step-tokenize",
+      "label": "01 · 分词：文本不是整数列表",
+      "kind": "step",
+      "stepIds": ["tokenize"]
+    },
+    {
+      "id": "data-encode",
+      "label": "RustBPETokenizer.encode",
+      "kind": "code",
+      "stepIds": ["tokenize"],
+      "codeId": "data-encode",
+      "file": "nanochat/tokenizer.py"
+    },
+    {
+      "id": "data-vocab",
+      "label": "RustBPETokenizer.train_from_iterator",
+      "kind": "code",
+      "stepIds": ["tokenize"],
+      "codeId": "data-vocab",
+      "file": "nanochat/tokenizer.py"
+    },
+    {
+      "id": "step-batch",
+      "label": "02 · 批次：为什么多取一个位置",
+      "kind": "step",
+      "stepIds": ["batch"]
+    },
+    {
+      "id": "data-capacity",
+      "label": "tokenizing_distributed_data_loader_with_state_bos_bestfit",
+      "kind": "code",
+      "stepIds": ["batch"],
+      "codeId": "data-capacity",
+      "file": "nanochat/dataloader.py"
+    },
+    {
+      "id": "data-pack",
+      "label": "best-fit packing and cropping",
+      "kind": "code",
+      "stepIds": ["batch"],
+      "codeId": "data-pack",
+      "file": "nanochat/dataloader.py"
+    },
+    {
+      "id": "step-targets",
+      "label": "03 · 目标：向右错开一个位置",
+      "kind": "step",
+      "stepIds": ["targets"]
+    },
+    {
+      "id": "data-shift",
+      "label": "input/target shift",
+      "kind": "code",
+      "stepIds": ["targets"],
+      "codeId": "data-shift",
+      "file": "nanochat/dataloader.py"
+    },
+    {
+      "id": "data-experiment",
+      "label": "分词与批次实验",
+      "kind": "experiment",
+      "stepIds": ["tokenize", "batch", "targets"]
+    }
+  ],
+  "edges": [
+    {
+      "id": "teaches-data-encode",
+      "source": "step-tokenize",
+      "target": "data-encode",
+      "kind": "teaches"
+    },
+    {
+      "id": "teaches-data-vocab",
+      "source": "step-tokenize",
+      "target": "data-vocab",
+      "kind": "teaches"
+    },
+    {
+      "id": "teaches-data-capacity",
+      "source": "step-batch",
+      "target": "data-capacity",
+      "kind": "teaches"
+    },
+    {
+      "id": "teaches-data-pack",
+      "source": "step-batch",
+      "target": "data-pack",
+      "kind": "teaches"
+    },
+    {
+      "id": "teaches-data-shift",
+      "source": "step-targets",
+      "target": "data-shift",
+      "kind": "teaches"
+    },
+    {
+      "id": "verify-tokenize",
+      "source": "data-experiment",
+      "target": "step-tokenize",
+      "kind": "verifies"
+    },
+    {
+      "id": "verify-batch",
+      "source": "data-experiment",
+      "target": "step-batch",
+      "kind": "verifies"
+    },
+    {
+      "id": "pre-batch",
+      "source": "step-tokenize",
+      "target": "step-batch",
+      "kind": "prerequisite"
+    },
+    {
+      "id": "verify-targets",
+      "source": "data-experiment",
+      "target": "step-targets",
+      "kind": "verifies"
+    },
+    {
+      "id": "pre-targets",
+      "source": "step-batch",
+      "target": "step-targets",
+      "kind": "prerequisite"
+    }
+  ]
+}

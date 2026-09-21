@@ -1,0 +1,34 @@
+[
+  {
+    "id": "data-token",
+    "title": "Token 与词表",
+    "body": "词表把字节片段映射到整数。BPE 学习常见相邻片段的合并；编号不表示大小或语义距离。实验的微型词表与第一课合成 ID 不可直接互换。",
+    "misconception": "一个 Token 不一定是一个汉字；单个片段也不一定可独立解码。",
+    "sourceIds": ["nanochat-tokenizer"],
+    "status": "reviewed"
+  },
+  {
+    "id": "data-bos",
+    "title": "BOS：文档的起点",
+    "body": "加载器对每篇文档添加 Beginning of Sequence 标记。它占一个真实位置，帮助模型识别文档边界。",
+    "misconception": "BOS 不是补齐长度用的零，也不属于普通文本。",
+    "sourceIds": ["nanochat-tokenizer", "nanochat-dataloader"],
+    "status": "reviewed"
+  },
+  {
+    "id": "data-batch",
+    "title": "B、T 与 T+1",
+    "body": "B 是行数，T 是每行参与预测的位置数。切片前多保留一个索引，之后输入与目标的形状均为 $(B,T)$。",
+    "misconception": "B=2 并不保证每行恰好对应一篇完整文档。",
+    "sourceIds": ["nanochat-dataloader"],
+    "status": "reviewed"
+  },
+  {
+    "id": "data-target",
+    "title": "目标向右错位",
+    "body": "`inputs = row[:, :-1]`，`targets = row[:, 1:]`。第 t 个输出学习预测原始行的第 t+1 个 Token。",
+    "misconception": "targets 是文本提供的监督，不是模型的当前预测，也不是输入的逐项复制。",
+    "sourceIds": ["nanochat-dataloader"],
+    "status": "reviewed"
+  }
+]

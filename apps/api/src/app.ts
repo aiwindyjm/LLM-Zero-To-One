@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { ZodError } from 'zod';
@@ -10,9 +10,9 @@ import {
   progressRequestSchema,
   tutorRequestSchema,
   LESSON_ID,
-  LESSON_VERSION,
+  lessonQuerySchema,
 } from '@llm/contracts';
-import { validateContent, readSource, loadManifest } from './content.js';
+import { validateLibrary, loadAssessments, readSource, loadManifest } from './content.js';
 import { Store } from './database.js';
 import { JobManager } from './jobs.js';
 import { tutorContext, streamCompletion, verifyTutorCitations } from './tutor.js';
@@ -25,12 +25,22 @@ export interface AppOptions {
 }
 
 export async function createApp(options: AppOptions) {
-  const catalog = validateContent(options.root);
+  const catalogs = validateLibrary(options.root);
+  const resolveCatalog = (identity: unknown) => {
+    const query = lessonQuerySchema.parse(identity);
+    const id = query.lessonId || LESSON_ID;
+    const catalog = catalogs.find(
+      (item) =>
+        item.lesson.id === id &&
+        (!query.lessonVersion || item.lesson.version === query.lessonVersion),
+    );
+    if (!catalog) throw Object.assign(new Error('课程或课程版本不存在。'), { statusCode: 404 });
+    return catalog;
+  };
   const store = new Store(options.database);
   const jobs = options.jobs?.(store) || new JobManager(options.root, store);
   const app = Fastify({ logger: options.logger ?? false, bodyLimit: 65536 });
   const sessionToken = randomUUID();
-  const stepById = (id: string) => catalog.lesson.steps.find((step) => step.id === id);
 
   app.addHook('onRequest', async (request, reply) => {
     const host = request.headers.host?.split(':')[0];
@@ -84,7 +94,10 @@ export async function createApp(options: AppOptions) {
     reply.header('Cache-Control', 'no-store');
     return { token: sessionToken };
   });
-  app.get('/api/catalog', async () => catalog);
+  app.get('/api/lessons', async () =>
+    catalogs.map(({ lesson }) => ({ id: lesson.id, version: lesson.version, title: lesson.title })),
+  );
+  app.get('/api/catalog', async (request) => resolveCatalog(request.query));
   app.get('/api/source', async (request, reply) => {
     const { file } = request.query as { file?: string };
     if (!file || !loadManifest(options.root).files.some((entry) => entry.path === file))
@@ -101,22 +114,27 @@ export async function createApp(options: AppOptions) {
     };
   });
   app.get('/api/environment', async () => jobs.diagnose());
-  app.get('/api/progress', async () => ({
-    steps: store.getProgress(LESSON_ID, LESSON_VERSION),
-    attempts: store.listAttempts(LESSON_ID, LESSON_VERSION),
-  }));
+  app.get('/api/progress', async (request) => {
+    const { lesson } = resolveCatalog(request.query);
+    return {
+      steps: store.getProgress(lesson.id, lesson.version),
+      attempts: store.listAttempts(lesson.id, lesson.version),
+    };
+  });
   app.post('/api/progress', async (request, reply) => {
     const input = progressRequestSchema.parse(request.body);
-    if (!stepById(input.stepId)) return reply.code(404).send({ message: '学习步骤不存在。' });
+    const catalog = resolveCatalog(input);
+    if (!catalog.lesson.steps.some((step) => step.id === input.stepId))
+      return reply.code(404).send({ message: '学习步骤不存在。' });
     store.setProgress(input.lessonId, input.lessonVersion, input.stepId, 'viewed');
     return { ok: true };
   });
   app.post('/api/assessments', async (request, reply) => {
     const input = assessmentRequestSchema.parse(request.body);
-    if (!stepById(input.stepId)) return reply.code(404).send({ message: '学习步骤不存在。' });
-    const rubric = JSON.parse(
-      readFileSync(resolve(options.root, 'content/assessments.json'), 'utf8'),
-    ) as Record<string, { answer: string; feedback: string }>;
+    const catalog = resolveCatalog(input);
+    if (!catalog.lesson.steps.some((step) => step.id === input.stepId))
+      return reply.code(404).send({ message: '学习步骤不存在。' });
+    const rubric = loadAssessments(options.root, catalog);
     const run = input.runId ? store.getRun(input.runId) : undefined;
     if (
       input.runId &&
@@ -124,7 +142,7 @@ export async function createApp(options: AppOptions) {
         run.status !== 'succeeded' ||
         run.lessonId !== input.lessonId ||
         run.lessonVersion !== input.lessonVersion ||
-        run.experimentId !== 'forward-trace' ||
+        run.experimentId !== catalog.experiment.id ||
         run.sequenceLength !== 8 ||
         run.result?.batchSize !== 2 ||
         run.result?.commit !== catalog.lesson.commit)
@@ -146,9 +164,19 @@ export async function createApp(options: AppOptions) {
         : '这里只验证客观题与实验记录；未记录解释。',
     };
   });
-  app.get('/api/runs', async () => store.listRuns());
+  app.get('/api/runs', async (request) => {
+    const { lesson } = resolveCatalog(request.query);
+    return store.listRuns(lesson.id, lesson.version);
+  });
   app.post('/api/runs', async (request, reply) => {
     const input = experimentRequestSchema.parse(request.body);
+    const catalog = resolveCatalog(input);
+    if (
+      input.experimentId !== catalog.experiment.id ||
+      !catalog.experiment.presets.includes(input.preset) ||
+      !catalog.experiment.inputLengths.includes(input.sequenceLength)
+    )
+      return reply.code(400).send({ message: '实验配置不属于所选课程。' });
     const environment = await jobs.diagnose();
     if (!environment.ready) return reply.code(503).send({ message: environment.message });
     if (input.preset === 'cuda' && !environment.gpuAvailable)
@@ -203,13 +231,17 @@ export async function createApp(options: AppOptions) {
   });
 
   app.get('/api/tutor/messages', async (request) => {
-    const { stepId = 'input' } = request.query as { stepId?: string };
-    return store.getMessages(LESSON_ID, LESSON_VERSION, stepId);
+    const { lesson } = resolveCatalog(request.query);
+    const { stepId = lesson.steps[0].id } = request.query as { stepId?: string };
+    if (!lesson.steps.some((step) => step.id === stepId))
+      throw Object.assign(new Error('学习步骤不存在。'), { statusCode: 404 });
+    return store.getMessages(lesson.id, lesson.version, stepId);
   });
   let tutorBusy = false;
   app.post('/api/tutor', async (request, reply) => {
     const input = tutorRequestSchema.parse(request.body);
-    const step = stepById(input.stepId);
+    const catalog = resolveCatalog(input);
+    const step = catalog.lesson.steps.find((step) => step.id === input.stepId);
     if (!step) return reply.code(404).send({ message: '学习步骤不存在。' });
     if (!process.env.TUTOR_API_KEY || !process.env.TUTOR_MODEL)
       return reply.code(503).send({
@@ -217,8 +249,8 @@ export async function createApp(options: AppOptions) {
       });
     if (tutorBusy) return reply.code(429).send({ message: 'Tutor 正在回答，请稍候。' });
     tutorBusy = true;
-    const history = store.getMessages(LESSON_ID, LESSON_VERSION, step.id).slice(-8);
-    store.saveMessage(LESSON_ID, LESSON_VERSION, step.id, 'user', input.message);
+    const history = store.getMessages(input.lessonId, input.lessonVersion, step.id).slice(-8);
+    store.saveMessage(input.lessonId, input.lessonVersion, step.id, 'user', input.message);
     reply.hijack();
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -242,7 +274,13 @@ export async function createApp(options: AppOptions) {
         controller.signal,
       );
       const checked = verifyTutorCitations(text, step.sourceIds);
-      const message = store.saveMessage(LESSON_ID, LESSON_VERSION, step.id, 'assistant', checked);
+      const message = store.saveMessage(
+        input.lessonId,
+        input.lessonVersion,
+        step.id,
+        'assistant',
+        checked,
+      );
       send({ kind: 'done', message });
     } catch (error) {
       send({

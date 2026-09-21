@@ -3,6 +3,11 @@ import { z } from 'zod';
 export const UPSTREAM_SHA = '92d63d4e8bb4df75c3b71618f31ddde2378b2bcd';
 export const LESSON_ID = 'nanochat-forward';
 export const LESSON_VERSION = '1.0.0';
+export const lessonIdentitySchema = z.object({
+  lessonId: z.string().regex(/^[a-z0-9-]{1,80}$/),
+  lessonVersion: z.string().regex(/^\d+\.\d+\.\d+$/),
+});
+export const lessonQuerySchema = lessonIdentitySchema.partial();
 
 export const codeReferenceSchema = z
   .object({
@@ -30,13 +35,42 @@ export const learningStepSchema = z.object({
   knowledgeIds: z.array(z.string()),
   sourceIds: z.array(z.string()),
   explanation: z.string(),
+  motivation: z.string().optional(),
+  orientation: z
+    .object({
+      knowledgeId: z.string(),
+      stages: z
+        .array(z.object({ label: z.string(), title: z.string(), body: z.string() }))
+        .length(5),
+      tasks: z.array(z.object({ title: z.string(), input: z.string(), output: z.string() })).min(2),
+      variants: z.array(z.object({ text: z.string(), keywordMatch: z.boolean() })).min(2),
+      contexts: z.array(z.object({ prefix: z.string(), continuation: z.string() })).min(2),
+      pieces: z.array(z.object({ text: z.string(), id: z.number().int().nonnegative() })).min(3),
+      note: z.string(),
+      check: z.object({
+        question: z.string(),
+        choices: z.array(z.string()).min(2),
+        answer: z.string(),
+        feedback: z.string(),
+      }),
+    })
+    .optional(),
   input: z.string(),
   output: z.string(),
   question: z.string(),
   choices: z.array(z.string()),
   experimentId: z.string(),
   diagram: z.object({
-    kind: z.enum(['input', 'embedding', 'block', 'logits', 'prediction']),
+    kind: z.enum([
+      'input',
+      'embedding',
+      'block',
+      'logits',
+      'prediction',
+      'tokenize',
+      'batch',
+      'targets',
+    ]),
     prompt: z.string(),
     anchors: z
       .array(
@@ -116,16 +150,15 @@ export type LearningGraph = z.infer<typeof graphSchema>;
 
 export const experimentRequestSchema = z
   .object({
-    lessonId: z.literal(LESSON_ID),
-    lessonVersion: z.literal(LESSON_VERSION),
-    experimentId: z.literal('forward-trace'),
+    ...lessonIdentitySchema.shape,
+    experimentId: z.enum(['forward-trace', 'data-trace']),
     preset: z.enum(['cpu', 'cuda']),
     sequenceLength: z.union([z.literal(8), z.literal(16), z.literal(32)]),
   })
   .strict();
 export type ExperimentRequest = z.infer<typeof experimentRequestSchema>;
 export const experimentDefinitionSchema = z.object({
-  id: z.literal('forward-trace'),
+  id: z.enum(['forward-trace', 'data-trace']),
   title: z.string(),
   description: z.string(),
   presets: z.array(z.enum(['cpu', 'cuda'])),
@@ -173,6 +206,24 @@ export const experimentTraceSchema = z.object({
     .length(2),
 });
 export type ExperimentTrace = z.infer<typeof experimentTraceSchema>;
+export const dataTraceSchema = z.object({
+  version: z.literal(1),
+  tokenizer: z.literal('nanochat.RustBPETokenizer'),
+  vocabSize: z.number().int().min(265).max(512),
+  bosId: z.number().int().nonnegative(),
+  documents: z
+    .array(
+      z.object({
+        text: z.string().max(1000),
+        ids: z.array(z.number().int()).max(1000),
+        decoded: z.string().max(1000),
+      }),
+    )
+    .length(2),
+  inputs: z.array(z.array(z.number().int().nonnegative()).min(8).max(32)).length(2),
+  targets: z.array(z.array(z.number().int().nonnegative()).min(8).max(32)).length(2),
+});
+export type DataTrace = z.infer<typeof dataTraceSchema>;
 export const experimentResultSchema = z
   .object({
     commit: z.literal(UPSTREAM_SHA),
@@ -190,8 +241,30 @@ export const experimentResultSchema = z
     pythonVersion: z.string(),
     torchVersion: z.string(),
     trace: experimentTraceSchema.optional(),
+    dataTrace: dataTraceSchema.optional(),
   })
   .superRefine((result, context) => {
+    const data = result.dataTrace;
+    if (
+      data &&
+      (result.trace ||
+        data.inputs.some(
+          (row, batch) =>
+            row.length !== result.sequenceLength ||
+            row[0] !== data.bosId ||
+            data.targets[batch].length !== row.length ||
+            row.slice(1).some((id, index) => id !== data.targets[batch][index]),
+        ) ||
+        [...data.inputs, ...data.targets].some((row) => row.some((id) => id >= data.vocabSize)) ||
+        data.documents.some(
+          (doc) => doc.text !== doc.decoded || doc.ids.some((id) => id < 0 || id >= data.vocabSize),
+        ))
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['dataTrace'],
+        message: 'Data trace has inconsistent shifts, vocabulary or round-trip',
+      });
     const trace = result.trace;
     if (!trace) return;
     const positions = [0, 1, result.sequenceLength - 1];
@@ -259,8 +332,7 @@ export interface AssessmentAttempt {
 }
 export const assessmentRequestSchema = z
   .object({
-    lessonId: z.literal(LESSON_ID),
-    lessonVersion: z.literal(LESSON_VERSION),
+    ...lessonIdentitySchema.shape,
     stepId: z.string(),
     answer: z.string().max(120),
     explanation: z.string().trim().max(4000).default(''),
@@ -269,8 +341,7 @@ export const assessmentRequestSchema = z
   .strict();
 export const progressRequestSchema = z
   .object({
-    lessonId: z.literal(LESSON_ID),
-    lessonVersion: z.literal(LESSON_VERSION),
+    ...lessonIdentitySchema.shape,
     stepId: z.string(),
   })
   .strict();
@@ -281,8 +352,7 @@ export interface StepProgress {
 }
 export const tutorRequestSchema = z
   .object({
-    lessonId: z.literal(LESSON_ID),
-    lessonVersion: z.literal(LESSON_VERSION),
+    ...lessonIdentitySchema.shape,
     stepId: z.string(),
     message: z.string().min(1).max(4000),
     mode: z.enum(['explain', 'hint']),

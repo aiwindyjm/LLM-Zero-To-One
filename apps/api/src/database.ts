@@ -139,10 +139,15 @@ export class Store {
     return this.db.select().from(runs).where(eq(runs.id, id)).get() as ExperimentRun | undefined;
   }
 
-  listRuns(): ExperimentRun[] {
+  listRuns(lessonId?: string, lessonVersion?: string): ExperimentRun[] {
     return this.db
       .select()
       .from(runs)
+      .where(
+        lessonId && lessonVersion
+          ? and(eq(runs.lessonId, lessonId), eq(runs.lessonVersion, lessonVersion))
+          : undefined,
+      )
       .orderBy(desc(runs.createdAt))
       .limit(50)
       .all() as ExperimentRun[];

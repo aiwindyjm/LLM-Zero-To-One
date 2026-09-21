@@ -34,6 +34,45 @@ createInterface({ input: process.stdin })
         return;
       }
       const length = input.sequenceLength;
+      if (input.experimentId === 'data-trace') {
+        const inputs = [0, 1].map((batch) =>
+          Array.from({ length }, (_, i) => (i === 0 ? 256 : batch * 40 + i)),
+        );
+        emit({
+          kind: 'result',
+          result: {
+            commit: '92d63d4e8bb4df75c3b71618f31ddde2378b2bcd',
+            device: 'CPU (test fixture)',
+            dtype: 'torch.int64',
+            durationSeconds: 0.05,
+            peakMemoryMb: 0,
+            sequenceLength: length,
+            batchSize: 2,
+            shapes: { row_buffer: [2, length + 1], inputs: [2, length], targets: [2, length] },
+            nextTokenIds: [],
+            probabilitiesSum: [],
+            modelParameters: 0,
+            seed: 0,
+            pythonVersion: 'test-fixture',
+            torchVersion: 'test-fixture',
+            dataTrace: {
+              version: 1,
+              tokenizer: 'nanochat.RustBPETokenizer',
+              vocabSize: 280,
+              bosId: 256,
+              documents: [0, 1].map((i) => ({
+                text: `Test fixture ${i}`,
+                decoded: `Test fixture ${i}`,
+                ids: [1, 2, 3],
+              })),
+              inputs,
+              targets: inputs.map((row, batch) => [...row.slice(1), batch * 40 + length]),
+            },
+          },
+        });
+        emit({ kind: 'exit', code: 0 });
+        return;
+      }
       emit({
         kind: 'result',
         result: {

@@ -1,0 +1,12 @@
+[
+  {
+    "id": "nanochat-forward",
+    "version": "1.0.0",
+    "directory": ""
+  },
+  {
+    "id": "nanochat-data",
+    "version": "1.0.0",
+    "directory": "data-pipeline/"
+  }
+]

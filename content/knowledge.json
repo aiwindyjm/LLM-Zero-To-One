@@ -1,5 +1,13 @@
 [
   {
+    "id": "generation-task",
+    "title": "产品目标与训练任务不是一回事",
+    "body": "产品目标可能是查资料、分类、问答或写作辅助。下一片段预测是一种可从原始文本规模化构造的训练任务。训练时原文提供答案，预测差异用于调整参数；生成时只有上文。能否服务具体任务需要评估，面向指令的助手通常还会进行后训练。",
+    "misconception": "预测下一片段不是产品目标，也不意味着模型理解、真实或可靠；固定任务能用确定性程序解决时，不必强行使用语言模型。",
+    "sourceIds": ["nanochat-gpt", "nanochat-dataloader"],
+    "status": "reviewed"
+  },
+  {
     "id": "token",
     "title": "Token 与词表索引",
     "body": "Token 是分词器定义的单位；Token ID 是它在词表中的整数索引。Token 不一定等于一个字或一个单词。GPT.forward 接收到的是 ID 张量。",

@@ -6,11 +6,12 @@ import { experimentResultSchema } from '@llm/contracts';
 
 const base = process.env.LLM_SMOKE_URL || 'http://127.0.0.1:4310';
 const preset = process.argv.includes('--cuda') ? 'cuda' : 'cpu';
+const data = process.argv.includes('--data');
 const container = process.env.LLM_SMOKE_CONTAINER;
 const request = {
-  lessonId: 'nanochat-forward',
+  lessonId: data ? 'nanochat-data' : 'nanochat-forward',
   lessonVersion: '1.0.0',
-  experimentId: 'forward-trace',
+  experimentId: data ? 'data-trace' : 'forward-trace',
   preset,
   sequenceLength: 8,
 };
@@ -49,7 +50,7 @@ const started = await api('/runs', request);
 const result = await terminal(started.id);
 assert.equal(result.status, 'succeeded', result.error);
 experimentResultSchema.parse(result.result);
-assert.equal(result.result.trace.version, 1);
+assert.equal((data ? result.result.dataTrace : result.result.trace).version, 1);
 const cancelled = await api('/runs', request);
 await api(`/runs/${cancelled.id}/cancel`, {});
 assert.equal((await terminal(cancelled.id)).status, 'cancelled');
@@ -63,7 +64,7 @@ if (container) {
 }
 mkdirSync(resolve('.local/validation'), { recursive: true });
 writeFileSync(
-  resolve(`.local/validation/container-${preset}.json`),
+  resolve(`.local/validation/container-${data ? 'data-' : ''}${preset}.json`),
   JSON.stringify(result, null, 2),
 );
 console.log(

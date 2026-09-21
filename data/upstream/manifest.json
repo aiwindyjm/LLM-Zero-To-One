@@ -25,6 +25,18 @@
     {
       "path": "LICENSE",
       "sha256": "42bb09f339a8af8b90d3b4969b6f6e4ba4aff3b5c614103b031fccdf71c8f772"
+    },
+    {
+      "path": "nanochat/tokenizer.py",
+      "sha256": "e6f12cb88fead3e6d0d45a7dd2af4192280712d92bfde83e2399cc4b3a0860fb"
+    },
+    {
+      "path": "nanochat/dataloader.py",
+      "sha256": "5cc72d7207931f112d685ba8e04c112e1a4ab7756dbbb29b95bdb4908a21864d"
+    },
+    {
+      "path": "nanochat/dataset.py",
+      "sha256": "3ec2ad5987875e3d7f3ec72f08d78089fe8a3b20090448b798c21c4efb93d18a"
     }
   ],
   "changes": [
