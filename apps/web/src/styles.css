@@ -1560,7 +1560,7 @@ details > summary::marker {
 }
 .orientation-stages {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
 }
 .orientation-stages button {
@@ -1587,6 +1587,7 @@ details > summary::marker {
   margin: 12px 0;
 }
 .orientation-contexts,
+.orientation-tasks,
 .continuation-example,
 .orientation-cycle,
 .training-sentence,
@@ -1598,6 +1599,7 @@ details > summary::marker {
   flex-wrap: wrap;
 }
 .orientation-contexts button,
+.orientation-tasks button,
 .training-sentence button,
 .teaching-vocabulary button {
   padding: 8px 12px;
@@ -1611,6 +1613,45 @@ details > summary::marker {
 .continuation-example {
   padding: 20px 0 4px;
   font-size: 20px;
+}
+.task-example {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 20px 0 4px;
+}
+.task-example > div {
+  display: grid;
+  gap: 8px;
+}
+.task-example small {
+  color: var(--muted);
+}
+.task-example strong {
+  font-size: 18px;
+  line-height: 1.5;
+}
+.rule-variants {
+  display: grid;
+  gap: 6px;
+}
+.rule-variants > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.rule-variants strong {
+  flex: 0 0 auto;
+  font-size: 13px;
+}
+.rule-pass {
+  color: var(--axis-c);
+}
+.rule-miss {
+  color: var(--danger);
 }
 .continuation-example strong {
   color: var(--axis-c);
@@ -1680,6 +1721,15 @@ details > summary::marker {
   .continuation-example,
   .training-pair strong {
     font-size: 18px;
+  }
+  .task-example {
+    grid-template-columns: 1fr;
+  }
+  .task-example > svg {
+    transform: rotate(90deg);
+  }
+  .rule-variants > div {
+    align-items: start;
   }
 }
 .sidebar-heading select {

@@ -178,7 +178,7 @@ export default function App() {
       targetView === 'source' &&
       data.lesson.steps.find((entry) => entry.id === stepId)?.orientation
     )
-      next.set('intro', '3');
+      next.set('intro', '4');
     setParams(next);
     setLeftDrawer(false);
     setSelectedKnowledge(undefined);
@@ -339,7 +339,7 @@ export default function App() {
       catalog={data}
       step={step}
       selectedKnowledge={
-        step.orientation && Number(params.get('intro') || 0) < 3
+        step.orientation && Number(params.get('intro') || 0) < 4
           ? step.orientation.knowledgeId
           : selectedKnowledge || anchor.knowledgeId
       }

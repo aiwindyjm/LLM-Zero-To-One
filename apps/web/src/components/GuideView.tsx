@@ -162,10 +162,10 @@ export function GuideView({
 }) {
   const { experiment: definition } = useLesson();
   const [params, setParams] = useSearchParams();
-  const stage = [0, 1, 2, 3].includes(Number(params.get('intro')))
+  const stage = [0, 1, 2, 3, 4].includes(Number(params.get('intro')))
     ? Number(params.get('intro'))
     : 0;
-  const ready = !step.orientation || stage === 3;
+  const ready = !step.orientation || stage === 4;
   const reference = step.code.find((code) => code.id === anchor.codeId)!;
   const selected = { ...reference, startLine: anchor.startLine, endLine: anchor.endLine };
   const source = useQuery({

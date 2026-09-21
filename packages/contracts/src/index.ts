@@ -41,7 +41,9 @@ export const learningStepSchema = z.object({
       knowledgeId: z.string(),
       stages: z
         .array(z.object({ label: z.string(), title: z.string(), body: z.string() }))
-        .length(4),
+        .length(5),
+      tasks: z.array(z.object({ title: z.string(), input: z.string(), output: z.string() })).min(2),
+      variants: z.array(z.object({ text: z.string(), keywordMatch: z.boolean() })).min(2),
       contexts: z.array(z.object({ prefix: z.string(), continuation: z.string() })).min(2),
       pieces: z.array(z.object({ text: z.string(), id: z.number().int().nonnegative() })).min(3),
       note: z.string(),

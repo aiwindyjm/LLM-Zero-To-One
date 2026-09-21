@@ -1,32 +1,36 @@
 import { test, expect } from '@playwright/test';
 
-test('first lesson establishes the learning problem before introducing arrays', async ({
+test('first lesson connects real language tasks to next-token training before arrays', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto('/?step=input&view=guide');
-  await expect(page.getByRole('heading', { name: '先让程序接着写一句话' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '先问：为什么需要程序处理语言？' })).toBeVisible();
   await expect(page.locator('.linked-source')).toHaveCount(0);
-  await page.getByRole('button', { name: '我把书放进…', exact: true }).click();
-  await expect(page.locator('.continuation-example')).toContainText('书包里');
+  await page.getByRole('button', { name: '把要求整理成行动', exact: true }).click();
+  await expect(page.locator('.task-example')).toContainText('阅读 → 比较 → 准备讨论');
   await page.screenshot({ path: 'output/playwright/lesson-problem-desktop.png' });
-  await page.getByRole('button', { name: '继续：从哪里学', exact: true }).click();
+  await page.getByRole('button', { name: '继续：规则的边界', exact: true }).click();
+  await expect(page.locator('.rule-variants')).toContainText('规则漏掉');
+  await page.getByRole('button', { name: '继续：规模化学习', exact: true }).click();
   await page.getByRole('button', { name: '了', exact: true }).click();
   await expect(page.locator('.training-pair')).toContainText('今天 下雨');
-  await page.getByRole('radio', { name: '把模型刚猜的内容当作标准答案', exact: true }).check();
-  await expect(page.getByRole('status')).toContainText('原文中已有');
-  await page.getByRole('radio', { name: '原文中实际出现的下一个片段', exact: true }).check();
-  await expect(page.getByRole('status')).toContainText('原文提供监督信号');
-  await page.getByRole('button', { name: '继续：为什么是编号', exact: true }).click();
+  await page.getByRole('radio', { name: '因为产品最终只需要把句子续写下去', exact: true }).check();
+  await expect(page.getByRole('status')).toContainText('产品目标不只是在句尾续写');
+  await page
+    .getByRole('radio', { name: '已有文本能自动提供上文和实际后续，减少逐条人工标注', exact: true })
+    .check();
+  await expect(page.getByRole('status')).toContainText('可规模化的监督信号');
+  await page.getByRole('button', { name: '继续：变成数字', exact: true }).click();
   await expect(page.locator('.orientation-python')).toContainText('ids = [12, 5, 9]');
   await page.getByRole('button', { name: '继续：走到源码', exact: true }).click();
   await expect(page.locator('.linked-source')).toContainText('idx.size()');
   await page.reload();
   await expect(page.getByRole('heading', { name: '现在，才来到模型的输入' })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole('button', { name: '1想解决什么', exact: true }).focus();
+  await page.getByRole('button', { name: '1现实目标', exact: true }).focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { name: '先让程序接着写一句话' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '先问：为什么需要程序处理语言？' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: 'output/playwright/lesson-problem-mobile.png' });
 });
@@ -111,7 +115,7 @@ test('five diagrams support narrow drawers, keyboard interaction and legacy resu
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/?step=input&view=guide&intro=3');
+  await page.goto('/?step=input&view=guide&intro=4');
   const token = page.getByRole('button', { name: '序列 1，位置 0，ID 0', exact: true });
   await token.focus();
   await page.keyboard.press('ArrowRight');
