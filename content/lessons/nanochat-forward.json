@@ -1,0 +1,167 @@
+{
+  "id": "nanochat-forward",
+  "version": "1.0.0",
+  "title": "从 Token 到下一次预测",
+  "summary": "沿 nanochat 的真实 GPT.forward，追踪一个批次的五个关键站点。先看见完整数据流，再逐步拆解内部原理。",
+  "estimatedMinutes": 35,
+  "commit": "92d63d4e8bb4df75c3b71618f31ddde2378b2bcd",
+  "steps": [
+    {
+      "id": "input",
+      "title": "01 · 输入：模型接收什么",
+      "subtitle": "Token IDs → 一个批次",
+      "objective": "区分原始文本与 Token ID，解释批次大小 B 和序列长度 T。",
+      "prerequisites": [],
+      "code": [
+        {
+          "id": "input-forward",
+          "repository": "https://github.com/karpathy/nanochat",
+          "commit": "92d63d4e8bb4df75c3b71618f31ddde2378b2bcd",
+          "file": "nanochat/gpt.py",
+          "symbol": "GPT.forward",
+          "startLine": 459,
+          "endLine": 469
+        }
+      ],
+      "knowledgeIds": ["token", "shape"],
+      "sourceIds": ["nanochat-gpt", "pytorch-tensor"],
+      "explanation": "## 先找到模型的入口\n`GPT.forward` 接收的 `idx` 已经是整数张量，不是原始文本。上游数据管道负责把文本转换为 Token ID；这节课暂时从它的输出开始。\n\n`B, T = idx.size()` 取出两个轴：B 是一次处理的序列数量，T 是每条序列的位置数。Token ID 是词表索引，没有隐藏维度。\n\n### 这段代码为什么先做检查？\n后面的断言检查位置缓存长度、设备和 dtype。它们不是额外的神经网络层，而是在计算前确保输入与模型兼容。\n\n**实验边界：**我们使用合成整数 ID 观察数据流，没有把它们伪装成真实文本的分词结果。真正的 Tokenizer 将在数据章节实现。\n\n### 逐行读\n- `idx.size()`：读取张量形状，不改变数据。\n- `T0`：从已有 KV Cache 读取位置偏移；本课没有缓存，偏移为 0。\n- `cos_sin`：取出本次计算会使用的位置编码缓存。其原理留到 Attention 章节。",
+      "input": "整数 Token ID",
+      "output": "(B, T)",
+      "question": "一次输入 2 条、每条 8 个 Token 的序列，idx 的形状是什么？",
+      "choices": ["(2, 8)", "(8, 2, 128)", "(2, 8, 256)"],
+      "experimentId": "forward-trace"
+    },
+    {
+      "id": "embedding",
+      "title": "02 · Embedding：索引变向量",
+      "subtitle": "(B, T) → (B, T, C)",
+      "objective": "说明查表如何保留批次与序列轴，并新增隐藏维度。",
+      "prerequisites": ["input"],
+      "code": [
+        {
+          "id": "embedding-forward",
+          "repository": "https://github.com/karpathy/nanochat",
+          "commit": "92d63d4e8bb4df75c3b71618f31ddde2378b2bcd",
+          "file": "nanochat/gpt.py",
+          "symbol": "GPT.forward",
+          "startLine": 471,
+          "endLine": 473
+        },
+        {
+          "id": "embedding-init",
+          "repository": "https://github.com/karpathy/nanochat",
+          "commit": "92d63d4e8bb4df75c3b71618f31ddde2378b2bcd",
+          "file": "nanochat/gpt.py",
+          "symbol": "GPT.__init__",
+          "startLine": 170,
+          "endLine": 177
+        }
+      ],
+      "knowledgeIds": ["embedding", "shape"],
+      "sourceIds": ["nanochat-gpt", "pytorch-embedding"],
+      "explanation": "## 每个 ID 对应一个可学习向量\n`self.transformer.wte(idx)` 调用 `nn.Embedding`。可以把权重理解为一张 V 行、C 列的表：每个整数 ID 选择其中一行。\n\n输入每个位置都有一个 ID，因此输出在原来的 B、T 两个轴后新增 C：\n\n$$ (B,T) \\longrightarrow (B,T,C) $$\n\n这不是把 ID 当成有大小意义的数值去乘权重。ID 255 不代表比 ID 1 多 255 倍的语义。\n\n### 本版本的额外处理\nEmbedding 后，源码转换到 `COMPUTE_DTYPE`，再调用 RMS 归一化。形状不变，但数值会变化。后续还有 smear 混合；本课完整运行这些上游逻辑，并在后续章节展开。\n\n### 逐行读\n- `wte(idx)`：向量查表。\n- `.to(COMPUTE_DTYPE)`：转换计算 dtype。\n- `norm(x)`：沿最后一维进行 RMS 归一化。",
+      "input": "(2, 8)",
+      "output": "(2, 8, 128)",
+      "question": "B=2、T=8、C=128 时，Embedding 的输出形状是什么？",
+      "choices": ["(2, 128)", "(2, 8, 128)", "(2, 8, 256)"],
+      "experimentId": "forward-trace"
+    },
+    {
+      "id": "block",
+      "title": "03 · Block：让上下文参与",
+      "subtitle": "保持形状，改变表示",
+      "objective": "找到 Block 的调用与实现，理解形状相同不代表计算没有发生。",
+      "prerequisites": ["embedding"],
+      "code": [
+        {
+          "id": "block-call",
+          "repository": "https://github.com/karpathy/nanochat",
+          "commit": "92d63d4e8bb4df75c3b71618f31ddde2378b2bcd",
+          "file": "nanochat/gpt.py",
+          "symbol": "GPT.forward",
+          "startLine": 495,
+          "endLine": 508
+        },
+        {
+          "id": "block-method",
+          "repository": "https://github.com/karpathy/nanochat",
+          "commit": "92d63d4e8bb4df75c3b71618f31ddde2378b2bcd",
+          "file": "nanochat/gpt.py",
+          "symbol": "Block.forward",
+          "startLine": 144,
+          "endLine": 153
+        },
+        {
+          "id": "attention-call",
+          "repository": "https://github.com/karpathy/nanochat",
+          "commit": "92d63d4e8bb4df75c3b71618f31ddde2378b2bcd",
+          "file": "nanochat/gpt.py",
+          "symbol": "CausalSelfAttention.forward",
+          "startLine": 84,
+          "endLine": 128
+        }
+      ],
+      "knowledgeIds": ["block", "shape"],
+      "sourceIds": ["nanochat-gpt", "attention-paper"],
+      "explanation": "## 一个 Block 是两次更新\n`Block.forward` 先做 Attention，再做 MLP，两次都通过残差加法保留输入路径：\n\n$$ x' = x + \\mathrm{Attention}(\\mathrm{norm}(x)) $$\n$$ y = x' + \\mathrm{MLP}(\\mathrm{norm}(x')) $$\n\n这里公式省略了位置编码、value embedding 等辅助参数，只概括这两条残差路径。**实际运行始终调用完整上游实现。**\n\nAttention 让当前位置获得允许访问的上下文信息；MLP 对每个位置的向量做非线性变换。输入输出都是 `(B,T,C)`，数值和信息却发生了变化。\n\n### 回到调用处\n`GPT.forward` 遍历两层 Block。这个版本还包含 residual scaling、x0 混合和 backout；它们是当前实现的具体设计，不等同于所有 Transformer 的通用结构。\n\n在关系网络中，展开 `GPT.forward → Block.forward`，再返回代码确认调用位置。",
+      "input": "(2, 8, 128)",
+      "output": "(2, 8, 128)",
+      "question": "本课模型经过一个完整 Block 后，输出形状是什么？",
+      "choices": ["(2, 8, 256)", "(2, 4, 128)", "(2, 8, 128)"],
+      "experimentId": "forward-trace"
+    },
+    {
+      "id": "logits",
+      "title": "04 · Logits：投影到词表",
+      "subtitle": "(B, T, C) → (B, T, V)",
+      "objective": "区分隐藏表示、词表分数和概率。",
+      "prerequisites": ["block"],
+      "code": [
+        {
+          "id": "logits-forward",
+          "repository": "https://github.com/karpathy/nanochat",
+          "commit": "92d63d4e8bb4df75c3b71618f31ddde2378b2bcd",
+          "file": "nanochat/gpt.py",
+          "symbol": "GPT.forward",
+          "startLine": 510,
+          "endLine": 525
+        }
+      ],
+      "knowledgeIds": ["logits", "shape"],
+      "sourceIds": ["nanochat-gpt", "pytorch-linear"],
+      "explanation": "## 给每个候选 Token 一个分数\n`lm_head` 把最后一维从隐藏维度 C 投影到词表维度 V。它对每个批次、每个位置执行相同的线性变换。\n\n$$ (B,T,C) \\longrightarrow (B,T,V) $$\n\n这些分数是 logits，还不是概率。源码先裁掉为计算效率增加的词表填充，再转成 float32，并使用 tanh softcap 限制分数范围。\n\n### 训练与推理在这里分叉\n如果提供 `targets`，上游计算 Cross Entropy 并返回 loss；否则返回 logits。本课调用不传 `targets`，因此得到三维 logits 张量。\n\n下一节再选择最后一个位置，用它预测序列之后的 Token。不要把所有位置的预测误认为一次生成了 T 个未来 Token。",
+      "input": "(2, 8, 128)",
+      "output": "(2, 8, 256)",
+      "question": "本课词表 V=256，forward 不传 targets 时返回什么形状？",
+      "choices": ["(2, 8, 256)", "(2, 256)", "(2, 8, 128)"],
+      "experimentId": "forward-trace"
+    },
+    {
+      "id": "prediction",
+      "title": "05 · 下一 Token：选择最后位置",
+      "subtitle": "预测一次，再接回输入",
+      "objective": "解释最后位置的含义，区分得到合法输出和模型拥有语言能力。",
+      "prerequisites": ["logits"],
+      "code": [
+        {
+          "id": "generation",
+          "repository": "https://github.com/karpathy/nanochat",
+          "commit": "92d63d4e8bb4df75c3b71618f31ddde2378b2bcd",
+          "file": "nanochat/gpt.py",
+          "symbol": "GPT.generate",
+          "startLine": 527,
+          "endLine": 555
+        }
+      ],
+      "knowledgeIds": ["sampling", "logits"],
+      "sourceIds": ["nanochat-gpt", "pytorch-softmax"],
+      "explanation": "## 最后一个位置，预测接下来的 Token\n源码中的 `logits[:, -1, :]` 保留全部批次，取最后一个序列位置，保留整个词表：\n\n$$ (B,T,V) \\longrightarrow (B,V) $$\n\n随后可用 softmax 转成概率，再采样；也可以在 temperature=0 的分支选择最大分数。选出的 ID 加到输入末尾，下一轮继续计算。\n\n### 本课实验和上游生成的边界\n上游 `GPT.generate` 为单条序列设计。本课实验对两条合成序列执行 forward，然后显式完成最后位置的 softmax 和 argmax，以方便观察批次形状。这部分是标明来源的实验辅助代码，没有替换 GPT 核心。\n\n### 跑通不等于学会语言\n随机初始化的模型也能输出形状正确、概率和为 1 的结果。只有经过训练并在独立任务上评估，才能讨论语言能力。\n\n完成实验后，用自己的话解释：为什么看到一个合法 Token ID，还不能说明模型已经学会了语言？",
+      "input": "(2, 8, 256)",
+      "output": "最后位置 (2, 256) → ID (2,)",
+      "question": "对 logits 执行 logits[:, -1, :] 后，形状是什么？",
+      "choices": ["(2, 8)", "(2, 256)", "(256,)"],
+      "experimentId": "forward-trace"
+    }
+  ]
+}

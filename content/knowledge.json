@@ -1,0 +1,50 @@
+[
+  {
+    "id": "token",
+    "title": "Token 与词表索引",
+    "body": "Token 是分词器定义的单位；Token ID 是它在词表中的整数索引。Token 不一定等于一个字或一个单词。GPT.forward 接收到的是 ID 张量。",
+    "misconception": "ID 的数值大小不表达语义上的距离。",
+    "sourceIds": ["nanochat-gpt", "pytorch-embedding"],
+    "status": "reviewed"
+  },
+  {
+    "id": "shape",
+    "title": "B · T · C · V",
+    "body": "B：批次中的序列数量。T：每条序列的位置数。C：隐藏表示维度。V：词表大小。读代码时先追踪每一根轴如何保留、增加或被选择。",
+    "misconception": "形状相同不代表数值或信息没有变化。",
+    "sourceIds": ["pytorch-tensor", "nanochat-gpt"],
+    "status": "reviewed"
+  },
+  {
+    "id": "embedding",
+    "title": "Embedding · 可学习的查找表",
+    "body": "给定词表索引，从权重矩阵中选择对应向量。若输入为 $(B,T)$，权重每行有 C 个元素，则输出为 $(B,T,C)$。",
+    "misconception": "Embedding 不是把 Token ID 本身当作连续数值做线性回归。",
+    "sourceIds": ["pytorch-embedding", "nanochat-gpt"],
+    "status": "reviewed"
+  },
+  {
+    "id": "block",
+    "title": "Transformer Block",
+    "body": "本版本 Block 使用归一化、因果注意力、MLP 和两条残差连接。注意力汇集上下文，MLP 变换各位置的表示。论文提供背景；当前实现行为由固定源码决定。",
+    "misconception": "2017 年原论文与当前 nanochat 的位置编码、归一化及激活函数并不完全相同。",
+    "sourceIds": ["nanochat-gpt", "attention-paper"],
+    "status": "reviewed"
+  },
+  {
+    "id": "logits",
+    "title": "Logits · 还不是概率",
+    "body": "Logits 是各候选 Token 的未归一化分数。对最后一维应用 softmax 后才得到概率分布：$p_i=\\exp(z_i)/\\sum_j\\exp(z_j)$。",
+    "misconception": "Logits 可以为负，也不要求总和为 1。",
+    "sourceIds": ["pytorch-softmax", "pytorch-linear"],
+    "status": "reviewed"
+  },
+  {
+    "id": "sampling",
+    "title": "自回归预测",
+    "body": "使用输入末尾位置的分数选择下一 Token，把它追加到序列，再重复。采样、贪心选择和温度影响生成行为，但不能替代训练。",
+    "misconception": "随机模型输出合法 ID 或概率，不代表具备语言理解能力。",
+    "sourceIds": ["nanochat-gpt", "pytorch-softmax"],
+    "status": "reviewed"
+  }
+]

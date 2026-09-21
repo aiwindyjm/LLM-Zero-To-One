@@ -1,0 +1,56 @@
+[
+  {
+    "id": "nanochat-gpt",
+    "title": "nanochat · GPT implementation",
+    "author": "Andrej Karpathy and contributors",
+    "url": "https://github.com/karpathy/nanochat/blob/92d63d4e8bb4df75c3b71618f31ddde2378b2bcd/nanochat/gpt.py",
+    "type": "source",
+    "relevance": "本课模型行为、形状与调用关系的直接依据。",
+    "verifiedAt": "2026-09-20"
+  },
+  {
+    "id": "pytorch-tensor",
+    "title": "PyTorch 2.9 · Tensor.size",
+    "author": "PyTorch contributors",
+    "url": "https://docs.pytorch.org/docs/2.9/generated/torch.Tensor.size.html",
+    "type": "official",
+    "relevance": "解释如何读取张量各维度大小。",
+    "verifiedAt": "2026-09-20"
+  },
+  {
+    "id": "pytorch-embedding",
+    "title": "PyTorch 2.9 · nn.Embedding",
+    "author": "PyTorch contributors",
+    "url": "https://docs.pytorch.org/docs/2.9/generated/torch.nn.Embedding.html",
+    "type": "official",
+    "relevance": "核对整数索引查表与输出形状。",
+    "verifiedAt": "2026-09-20"
+  },
+  {
+    "id": "pytorch-linear",
+    "title": "PyTorch 2.9 · nn.Linear",
+    "author": "PyTorch contributors",
+    "url": "https://docs.pytorch.org/docs/2.9/generated/torch.nn.Linear.html",
+    "type": "official",
+    "relevance": "解释最后一维从 C 到 V 的线性投影。",
+    "verifiedAt": "2026-09-20"
+  },
+  {
+    "id": "pytorch-softmax",
+    "title": "PyTorch 2.9 · softmax",
+    "author": "PyTorch contributors",
+    "url": "https://docs.pytorch.org/docs/2.9/generated/torch.nn.functional.softmax.html",
+    "type": "official",
+    "relevance": "核对将 logits 转换为概率的运算定义。",
+    "verifiedAt": "2026-09-20"
+  },
+  {
+    "id": "attention-paper",
+    "title": "Attention Is All You Need",
+    "author": "Vaswani et al., 2017",
+    "url": "https://arxiv.org/abs/1706.03762",
+    "type": "paper",
+    "relevance": "提供 Attention、残差和前馈层的原始背景，不作为 nanochat 每个实现细节的证明。",
+    "verifiedAt": "2026-09-20"
+  }
+]

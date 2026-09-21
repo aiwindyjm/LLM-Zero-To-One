@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  acceptance:
+    uses: ./.github/workflows/verify.yml
+    permissions:
+      contents: read
+  release:
+    needs: acceptance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - uses: googleapis/release-please-action@8b8fd2cc23b2e18957157a9d923d75aa0c6f6ad5
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+      - name: Dispatch checks for the release PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch=$(gh pr list --state open --head release-please--branches--main --json headRefName --jq '.[0].headRefName // empty')
+          if [ -n "$branch" ]; then
+            gh workflow run verify.yml --ref "$branch"
+          fi
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Upload artifacts to the release at this commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")
+          if gh release view "v$version" >/dev/null 2>&1; then
+            git fetch origin "refs/tags/v$version:refs/tags/v$version"
+            if [ "$(git rev-parse "v$version^{commit}")" = "$(git rev-parse HEAD)" ]; then
+              pnpm build
+              pnpm release:package
+              gh release upload "v$version" .local/release/*.tar.gz .local/release/source-manifest.json .local/release/SHA256SUMS --clobber
+            fi
+          fi

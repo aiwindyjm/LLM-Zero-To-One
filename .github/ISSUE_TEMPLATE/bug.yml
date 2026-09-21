@@ -1,0 +1,17 @@
+name: Bug or incorrect explanation / 问题与教材纠错
+description: Report a reproducible platform or teaching issue.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened? / 问题
+      description: Include lesson, step, version and expected behavior. Do not include secrets or private conversations.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction and evidence / 复现与依据
+      description: Commands, source references, environment and relevant sanitized output.
+    validations:
+      required: true

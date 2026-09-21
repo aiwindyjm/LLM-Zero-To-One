@@ -1,0 +1,9 @@
+pnpm-lock.yaml
+data/upstream/
+LLM-Zero-To-One.md
+dist/
+apps/*/dist/
+.local/
+output/
+node_modules/
+uv.lock

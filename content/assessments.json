@@ -1,0 +1,19 @@
+{
+  "input": {
+    "answer": "(2, 8)",
+    "feedback": "输入只有批次轴 B 和序列轴 T；隐藏维度由 Embedding 添加。"
+  },
+  "embedding": {
+    "answer": "(2, 8, 128)",
+    "feedback": "每个 Token ID 查到 128 维向量，原来的 B 和 T 保留。"
+  },
+  "block": {
+    "answer": "(2, 8, 128)",
+    "feedback": "Block 保持外部形状，Attention 和 MLP 改变表示。"
+  },
+  "logits": {
+    "answer": "(2, 8, 256)",
+    "feedback": "lm_head 把最后一维从隐藏维度 C 投影到词表 V。"
+  },
+  "prediction": { "answer": "(2, 256)", "feedback": "选择最后一个序列位置，只去掉 T 这一根轴。" }
+}

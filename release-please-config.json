@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "node",
+  "include-component-in-tag": false,
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": false,
+  "packages": {
+    ".": {
+      "package-name": "llm-zero-to-one",
+      "changelog-path": "CHANGELOG.md",
+      "pull-request-header": "## Release readiness / 发布验收\n\nMerge only after CI, CPU/browser checks, documentation, and milestone acceptance pass. GPU evidence is documented separately. / 通过检查并满足里程碑后合并；合并将创建 GitHub Release。"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+[project]
+name = "llm-zero-to-one-runner"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = ["torch==2.9.1", "filelock==3.20.0"]
+
+[project.optional-dependencies]
+cpu = ["torch==2.9.1"]
+gpu = ["torch==2.9.1"]
+
+[dependency-groups]
+dev = ["pytest==8.4.2"]
+
+[tool.uv]
+conflicts = [[{ extra = "cpu" }, { extra = "gpu" }]]
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu128", extra = "gpu" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

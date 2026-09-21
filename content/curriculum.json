@@ -1,0 +1,67 @@
+[
+  {
+    "id": "overview",
+    "title": "01 · 一次完整预测",
+    "objective": "看见 Token 到下一次预测的完整数据流。",
+    "status": "available",
+    "lessonId": "nanochat-forward",
+    "files": ["nanochat/gpt.py", "nanochat/common.py", "nanochat/flash_attention.py"],
+    "prerequisites": []
+  },
+  {
+    "id": "data",
+    "title": "02 · 文本与数据管道",
+    "objective": "理解分词、数据集、批次和下一个 Token 目标。",
+    "status": "planned",
+    "files": ["nanochat/tokenizer.py", "nanochat/dataset.py", "nanochat/dataloader.py"],
+    "prerequisites": ["overview"]
+  },
+  {
+    "id": "representation",
+    "title": "03 · 向量与张量",
+    "objective": "深入 Embedding、矩阵变换和 Tensor Shape。",
+    "status": "planned",
+    "files": ["nanochat/gpt.py"],
+    "prerequisites": ["data"]
+  },
+  {
+    "id": "attention",
+    "title": "04 · Attention 与位置",
+    "objective": "实现层面理解 QKV、因果约束、RoPE 和 GQA。",
+    "status": "planned",
+    "files": ["nanochat/gpt.py", "nanochat/flash_attention.py"],
+    "prerequisites": ["representation"]
+  },
+  {
+    "id": "transformer",
+    "title": "05 · 组成 Transformer",
+    "objective": "理解 MLP、归一化、残差及当前项目的具体设计。",
+    "status": "planned",
+    "files": ["nanochat/gpt.py"],
+    "prerequisites": ["attention"]
+  },
+  {
+    "id": "training",
+    "title": "06 · 模型如何学习",
+    "objective": "把 Loss、梯度、优化器和训练循环连起来。",
+    "status": "planned",
+    "files": ["nanochat/optim.py", "scripts/base_train.py"],
+    "prerequisites": ["transformer"]
+  },
+  {
+    "id": "evaluation",
+    "title": "07 · 保存、评估与推理",
+    "objective": "保存 Checkpoint，独立评估并理解 KV Cache。",
+    "status": "planned",
+    "files": ["nanochat/checkpoint_manager.py", "scripts/base_eval.py", "nanochat/engine.py"],
+    "prerequisites": ["training"]
+  },
+  {
+    "id": "chat",
+    "title": "08 · 走到聊天系统",
+    "objective": "完成 SFT、聊天评估和交互式推理。",
+    "status": "planned",
+    "files": ["scripts/chat_sft.py", "scripts/chat_eval.py", "scripts/chat_cli.py"],
+    "prerequisites": ["evaluation"]
+  }
+]

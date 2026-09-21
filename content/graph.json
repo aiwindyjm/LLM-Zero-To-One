@@ -1,0 +1,415 @@
+{
+  "nodes": [
+    {
+      "id": "file-gpt",
+      "label": "nanochat/gpt.py",
+      "kind": "file",
+      "file": "nanochat/gpt.py",
+      "stepIds": ["input", "embedding", "block", "logits", "prediction"]
+    },
+    {
+      "id": "method-forward",
+      "label": "GPT.forward",
+      "kind": "method",
+      "codeId": "input-forward",
+      "stepIds": ["input", "embedding", "block", "logits", "prediction"]
+    },
+    {
+      "id": "method-block",
+      "label": "Block.forward",
+      "kind": "method",
+      "codeId": "block-method",
+      "stepIds": ["block"]
+    },
+    {
+      "id": "method-generate",
+      "label": "GPT.generate",
+      "kind": "method",
+      "codeId": "generation",
+      "stepIds": ["prediction"]
+    },
+    {
+      "id": "experiment",
+      "label": "前向计算实验",
+      "kind": "experiment",
+      "stepIds": ["input", "embedding", "block", "logits", "prediction"]
+    },
+    {
+      "id": "step-input",
+      "label": "01 · 输入：模型接收什么",
+      "kind": "step",
+      "stepIds": ["input"],
+      "codeId": "input-forward"
+    },
+    {
+      "id": "code-input-forward",
+      "label": "GPT.forward · L459",
+      "kind": "code",
+      "codeId": "input-forward",
+      "stepIds": ["input"]
+    },
+    {
+      "id": "knowledge-token",
+      "label": "Token ID",
+      "kind": "knowledge",
+      "knowledgeId": "token",
+      "stepIds": ["input"]
+    },
+    {
+      "id": "knowledge-shape",
+      "label": "Tensor Shape",
+      "kind": "knowledge",
+      "knowledgeId": "shape",
+      "stepIds": ["input", "embedding", "block", "logits"]
+    },
+    {
+      "id": "step-embedding",
+      "label": "02 · Embedding：索引变向量",
+      "kind": "step",
+      "stepIds": ["embedding"],
+      "codeId": "embedding-forward"
+    },
+    {
+      "id": "code-embedding-forward",
+      "label": "GPT.forward · L471",
+      "kind": "code",
+      "codeId": "embedding-forward",
+      "stepIds": ["embedding"]
+    },
+    {
+      "id": "code-embedding-init",
+      "label": "GPT.__init__ · L170",
+      "kind": "code",
+      "codeId": "embedding-init",
+      "stepIds": ["embedding"]
+    },
+    {
+      "id": "knowledge-embedding",
+      "label": "Embedding",
+      "kind": "knowledge",
+      "knowledgeId": "embedding",
+      "stepIds": ["embedding"]
+    },
+    {
+      "id": "step-block",
+      "label": "03 · Block：让上下文参与",
+      "kind": "step",
+      "stepIds": ["block"],
+      "codeId": "block-call"
+    },
+    {
+      "id": "code-block-call",
+      "label": "GPT.forward · L495",
+      "kind": "code",
+      "codeId": "block-call",
+      "stepIds": ["block"]
+    },
+    {
+      "id": "code-block-method",
+      "label": "Block.forward · L144",
+      "kind": "code",
+      "codeId": "block-method",
+      "stepIds": ["block"]
+    },
+    {
+      "id": "code-attention-call",
+      "label": "CausalSelfAttention.forward · L84",
+      "kind": "code",
+      "codeId": "attention-call",
+      "stepIds": ["block"]
+    },
+    {
+      "id": "knowledge-block",
+      "label": "Transformer Block",
+      "kind": "knowledge",
+      "knowledgeId": "block",
+      "stepIds": ["block"]
+    },
+    {
+      "id": "step-logits",
+      "label": "04 · Logits：投影到词表",
+      "kind": "step",
+      "stepIds": ["logits"],
+      "codeId": "logits-forward"
+    },
+    {
+      "id": "code-logits-forward",
+      "label": "GPT.forward · L510",
+      "kind": "code",
+      "codeId": "logits-forward",
+      "stepIds": ["logits"]
+    },
+    {
+      "id": "knowledge-logits",
+      "label": "Logits",
+      "kind": "knowledge",
+      "knowledgeId": "logits",
+      "stepIds": ["logits", "prediction"]
+    },
+    {
+      "id": "step-prediction",
+      "label": "05 · 下一 Token：选择最后位置",
+      "kind": "step",
+      "stepIds": ["prediction"],
+      "codeId": "generation"
+    },
+    {
+      "id": "code-generation",
+      "label": "GPT.generate · L527",
+      "kind": "code",
+      "codeId": "generation",
+      "stepIds": ["prediction"]
+    },
+    {
+      "id": "knowledge-sampling",
+      "label": "自回归预测",
+      "kind": "knowledge",
+      "knowledgeId": "sampling",
+      "stepIds": ["prediction"]
+    }
+  ],
+  "edges": [
+    {
+      "id": "file-forward",
+      "source": "file-gpt",
+      "target": "method-forward",
+      "kind": "contains"
+    },
+    {
+      "id": "file-block",
+      "source": "file-gpt",
+      "target": "method-block",
+      "kind": "contains"
+    },
+    {
+      "id": "file-generate",
+      "source": "file-gpt",
+      "target": "method-generate",
+      "kind": "contains"
+    },
+    {
+      "id": "forward-block",
+      "source": "method-forward",
+      "target": "method-block",
+      "kind": "calls",
+      "evidenceCodeId": "block-call"
+    },
+    {
+      "id": "generate-forward",
+      "source": "method-generate",
+      "target": "method-forward",
+      "kind": "calls",
+      "evidenceCodeId": "generation"
+    },
+    {
+      "id": "step-code-input-forward",
+      "source": "step-input",
+      "target": "code-input-forward",
+      "kind": "teaches"
+    },
+    {
+      "id": "file-code-input-forward",
+      "source": "file-gpt",
+      "target": "code-input-forward",
+      "kind": "contains"
+    },
+    {
+      "id": "step-knowledge-input-token",
+      "source": "step-input",
+      "target": "knowledge-token",
+      "kind": "teaches"
+    },
+    {
+      "id": "step-knowledge-input-shape",
+      "source": "step-input",
+      "target": "knowledge-shape",
+      "kind": "teaches"
+    },
+    {
+      "id": "verify-input",
+      "source": "experiment",
+      "target": "step-input",
+      "kind": "verifies"
+    },
+    {
+      "id": "step-code-embedding-forward",
+      "source": "step-embedding",
+      "target": "code-embedding-forward",
+      "kind": "teaches"
+    },
+    {
+      "id": "file-code-embedding-forward",
+      "source": "file-gpt",
+      "target": "code-embedding-forward",
+      "kind": "contains"
+    },
+    {
+      "id": "step-code-embedding-init",
+      "source": "step-embedding",
+      "target": "code-embedding-init",
+      "kind": "teaches"
+    },
+    {
+      "id": "file-code-embedding-init",
+      "source": "file-gpt",
+      "target": "code-embedding-init",
+      "kind": "contains"
+    },
+    {
+      "id": "step-knowledge-embedding-embedding",
+      "source": "step-embedding",
+      "target": "knowledge-embedding",
+      "kind": "teaches"
+    },
+    {
+      "id": "step-knowledge-embedding-shape",
+      "source": "step-embedding",
+      "target": "knowledge-shape",
+      "kind": "teaches"
+    },
+    {
+      "id": "verify-embedding",
+      "source": "experiment",
+      "target": "step-embedding",
+      "kind": "verifies"
+    },
+    {
+      "id": "pre-embedding",
+      "source": "step-input",
+      "target": "step-embedding",
+      "kind": "prerequisite"
+    },
+    {
+      "id": "step-code-block-call",
+      "source": "step-block",
+      "target": "code-block-call",
+      "kind": "teaches"
+    },
+    {
+      "id": "file-code-block-call",
+      "source": "file-gpt",
+      "target": "code-block-call",
+      "kind": "contains"
+    },
+    {
+      "id": "step-code-block-method",
+      "source": "step-block",
+      "target": "code-block-method",
+      "kind": "teaches"
+    },
+    {
+      "id": "file-code-block-method",
+      "source": "file-gpt",
+      "target": "code-block-method",
+      "kind": "contains"
+    },
+    {
+      "id": "step-code-attention-call",
+      "source": "step-block",
+      "target": "code-attention-call",
+      "kind": "teaches"
+    },
+    {
+      "id": "file-code-attention-call",
+      "source": "file-gpt",
+      "target": "code-attention-call",
+      "kind": "contains"
+    },
+    {
+      "id": "step-knowledge-block-block",
+      "source": "step-block",
+      "target": "knowledge-block",
+      "kind": "teaches"
+    },
+    {
+      "id": "step-knowledge-block-shape",
+      "source": "step-block",
+      "target": "knowledge-shape",
+      "kind": "teaches"
+    },
+    {
+      "id": "verify-block",
+      "source": "experiment",
+      "target": "step-block",
+      "kind": "verifies"
+    },
+    {
+      "id": "pre-block",
+      "source": "step-embedding",
+      "target": "step-block",
+      "kind": "prerequisite"
+    },
+    {
+      "id": "step-code-logits-forward",
+      "source": "step-logits",
+      "target": "code-logits-forward",
+      "kind": "teaches"
+    },
+    {
+      "id": "file-code-logits-forward",
+      "source": "file-gpt",
+      "target": "code-logits-forward",
+      "kind": "contains"
+    },
+    {
+      "id": "step-knowledge-logits-logits",
+      "source": "step-logits",
+      "target": "knowledge-logits",
+      "kind": "teaches"
+    },
+    {
+      "id": "step-knowledge-logits-shape",
+      "source": "step-logits",
+      "target": "knowledge-shape",
+      "kind": "teaches"
+    },
+    {
+      "id": "verify-logits",
+      "source": "experiment",
+      "target": "step-logits",
+      "kind": "verifies"
+    },
+    {
+      "id": "pre-logits",
+      "source": "step-block",
+      "target": "step-logits",
+      "kind": "prerequisite"
+    },
+    {
+      "id": "step-code-generation",
+      "source": "step-prediction",
+      "target": "code-generation",
+      "kind": "teaches"
+    },
+    {
+      "id": "file-code-generation",
+      "source": "file-gpt",
+      "target": "code-generation",
+      "kind": "contains"
+    },
+    {
+      "id": "step-knowledge-prediction-sampling",
+      "source": "step-prediction",
+      "target": "knowledge-sampling",
+      "kind": "teaches"
+    },
+    {
+      "id": "step-knowledge-prediction-logits",
+      "source": "step-prediction",
+      "target": "knowledge-logits",
+      "kind": "teaches"
+    },
+    {
+      "id": "verify-prediction",
+      "source": "experiment",
+      "target": "step-prediction",
+      "kind": "verifies"
+    },
+    {
+      "id": "pre-prediction",
+      "source": "step-logits",
+      "target": "step-prediction",
+      "kind": "prerequisite"
+    }
+  ]
+}
