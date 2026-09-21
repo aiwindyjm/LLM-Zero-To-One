@@ -16,12 +16,13 @@ This document distinguishes checks that have actually run from remaining accepta
 - CPU float32: 0.2482 seconds; RTX 3080 bfloat16: 0.9379 seconds and 10.08 MiB peak PyTorch tensor allocation. These are single observations including model initialization and forward computation, excluding Python startup/imports. They are not comparative performance benchmarks; CUDA context/driver memory is not included in tensor allocation.
 - Both runs: B=2, T=8, C=128, V=256, two layers, 491,598 parameters; logits `(2,8,256)`, next-token shape `(2)`, normalized probabilities. Random weights and synthetic IDs have no measured language capability.
 - A real browser launched CUDA at T=16 through Fastify/WSL: persisted status `succeeded`, logits `(2,16,256)`, 0.9136 seconds and 10.12 MiB peak tensor allocation. The experiment dialog showed streamed logs and the saved result; its screenshot was inspected.
+- A second browser run was cancelled using the Stop button. WSL had no remaining experiment/supervisor process. After restarting the production API, both the cancelled record and earlier successful CUDA result remained available in the browser.
 - Five real Python tests passed, including sequence lengths 8, 16 and 32, checksum validation and rejected inputs. PyTorch emits an optional NumPy-unavailable warning; this experiment does not use NumPy conversion.
 - `pnpm check` passed formatting, lint, types, all 19 tests and production build. Two Chromium flows passed, including explicit graph-method navigation to source and narrow-screen keyboard dismissal.
 
 ## Publication verification
 
-Linux CI, release PR, GitHub Release and artifact installation evidence will be linked after publication. No remote publication is claimed before these checks finish.
+[Initial Linux acceptance](https://github.com/aiwindyjm/LLM-Zero-To-One/actions/runs/35562935972) passed both the complete JavaScript/browser suite and the real CPU experiment/Python tests. Release PR, GitHub Release and artifact installation evidence will be linked after publication.
 
 ## Tutor boundary
 

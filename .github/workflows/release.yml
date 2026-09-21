@@ -37,7 +37,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          branch=$(gh pr list --state open --head release-please--branches--main --json headRefName --jq '.[0].headRefName // empty')
+          branch=$(gh pr list --state open --label 'autorelease: pending' --json headRefName --jq '[.[] | select(.headRefName | startswith("release-please--branches--main"))][0].headRefName // empty')
           if [ -n "$branch" ]; then
             gh workflow run verify.yml --ref "$branch"
           fi
