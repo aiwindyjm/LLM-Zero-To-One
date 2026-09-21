@@ -8,6 +8,9 @@ interface Preferences {
   leftHidden: boolean;
   rightHidden: boolean;
   location: string;
+  diagramBatch: number;
+  diagramPosition: number;
+  diagramReplay: boolean;
   set: (value: Partial<Omit<Preferences, 'set'>>) => void;
 }
 
@@ -20,6 +23,9 @@ export const usePreferences = create<Preferences>()(
       leftHidden: false,
       rightHidden: false,
       location: '',
+      diagramBatch: 0,
+      diagramPosition: 0,
+      diagramReplay: false,
       set: (value) => set(value),
     }),
     {

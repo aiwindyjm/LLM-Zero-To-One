@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { usePreferences } from '../lib/store';
 import { ArrowRight } from 'lucide-react';
 import type { ExperimentRun, LearningStep } from '@llm/contracts';
 
@@ -47,9 +47,11 @@ export function LearningDiagram({
   run?: ExperimentRun;
   previewLength: number;
 }) {
-  const [replay, setReplay] = useState(false);
-  const [batch, setBatch] = useState(0);
-  const [position, setPosition] = useState(0);
+  const replay = usePreferences((state) => state.diagramReplay);
+  const batch = usePreferences((state) => state.diagramBatch);
+  const position = usePreferences((state) => state.diagramPosition);
+  const setPreferences = usePreferences((state) => state.set);
+  const setReplay = (value: boolean) => setPreferences({ diagramReplay: value });
   const trace = replay && run?.status === 'succeeded' ? run.result?.trace : undefined;
   const length = trace ? run!.sequenceLength : previewLength;
   const selectedPosition = step.id === 'prediction' ? length - 1 : Math.min(position, length - 1);
@@ -58,8 +60,7 @@ export function LearningDiagram({
     (entry) => entry.batch === batch && entry.position === selectedPosition,
   );
   const select = (nextBatch: number, nextPosition: number) => {
-    setBatch(nextBatch);
-    setPosition(nextPosition);
+    setPreferences({ diagramBatch: nextBatch, diagramPosition: nextPosition });
     onAnchor(step.diagram.anchors[step.id === 'input' ? 1 : 0]);
   };
   const block = anchor.id === 'block-1' ? 1 : 0;

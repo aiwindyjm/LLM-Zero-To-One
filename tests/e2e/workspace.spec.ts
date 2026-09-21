@@ -25,6 +25,7 @@ test('diagram, source, evidence and inline experiment form one learning loop', a
   await page.getByRole('button', { name: '选择代码第 471 行', exact: true }).click();
   await page.getByRole('tab', { name: '交互教材' }).click();
   await expect(page.locator('.code-card-heading')).toContainText('L471');
+  await expect(page.getByText('第 1 行', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '打开实验', exact: true }).click();
   await expect(page.getByRole('dialog')).not.toBeVisible();
   await page.getByLabel('序列长度', { exact: true }).selectOption('16');
