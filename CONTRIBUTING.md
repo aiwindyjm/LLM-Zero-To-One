@@ -6,6 +6,8 @@ Contributions may improve explanations, experimental evidence, references, acces
 
 ## Workflow
 
+For container development, use `docker compose -f compose.dev.yaml up --build --watch` and open port 5173. The [Docker guide](docs/DOCKER.md) documents isolated volumes and source synchronization. Changes to diagrams must preserve authored source anchors; replay samples must never be fabricated.
+
 1. Read `AGENTS.md`, the PRD, and the architecture document. Keep changes within the current milestone.
 2. Install with `pnpm install --frozen-lockfile` and start with `pnpm dev`.
 3. Make a focused change and update any affected lesson anchors, graph relationships, experiments, and assessments together.

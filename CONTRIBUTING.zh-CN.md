@@ -6,6 +6,8 @@
 
 ## 开发流程
 
+容器开发运行 `docker compose -f compose.dev.yaml up --build --watch`，访问 5173。独立数据卷与代码同步详见 [Docker 指南](docs/DOCKER.md)。修改图解须同步维护源码锚点，实测回放不能补造未采集的数值。
+
 1. 阅读 `AGENTS.md`、PRD 和架构文档，确认本次修改所属里程碑。
 2. 运行 `pnpm install --frozen-lockfile`、`pnpm dev`。
 3. 一次解决明确问题。修改教学内容时同步检查源码锚点、知识关系、实验和验收。
