@@ -18,6 +18,10 @@ Run `pnpm experiment:setup --cpu` for CPU, or `pnpm experiment:setup` for CUDA. 
 
 Windows needs WSL Ubuntu with working GPU passthrough. Verify inside WSL using `nvidia-smi`. Set `LLM_WSL_DISTRO` in `.env` if your distro has another name. Python environments live on Linux storage, even when the repository is on a mounted Windows drive.
 
+On this machine the Ubuntu WSL distribution is registered at `D:\WSL`, so its virtual disk and the managed Python environment are stored on D:. Docker Desktop has a separate D: data disk configured through `CustomWslDistroDir`; do not confuse the Docker `docker-desktop` distribution with the Ubuntu learning distribution.
+
+Ollama model files are stored at `D:\Ollama\Models` through the user environment variable `OLLAMA_MODELS`. Ollama's executable remains installed under the Windows user program directory; changing the model root keeps large model blobs off C: without moving the program installation.
+
 在 CPU/CUDA 安装之间切换时，重新运行对应 setup 命令。CUDA 依赖下载量为数 GB，首次准备明显慢于以后运行。网页的“重新检查环境”刷新诊断；诊断缓存最长 15 秒。
 
 The lockfile pins Python dependencies. `--refresh-lock` intentionally re-resolves dependencies for maintainers; review the resulting lock diff and rerun experiments before committing. Normal installations use `--frozen`.
