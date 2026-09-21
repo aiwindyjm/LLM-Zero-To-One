@@ -22,7 +22,11 @@ This document distinguishes checks that have actually run from remaining accepta
 
 ## Publication verification
 
-[Initial Linux acceptance](https://github.com/aiwindyjm/LLM-Zero-To-One/actions/runs/35562935972) passed both the complete JavaScript/browser suite and the real CPU experiment/Python tests. Release PR, GitHub Release and artifact installation evidence will be linked after publication.
+- [Release PR #1](https://github.com/aiwindyjm/LLM-Zero-To-One/pull/1) updated the product version to 0.1.0 and passed [PR CI](https://github.com/aiwindyjm/LLM-Zero-To-One/actions/runs/35563621835) and explicitly dispatched [release-branch verification](https://github.com/aiwindyjm/LLM-Zero-To-One/actions/runs/35563621316).
+- [The release workflow](https://github.com/aiwindyjm/LLM-Zero-To-One/actions/runs/35563774412) passed JavaScript/browser checks and the real Linux CPU experiment/Python tests, then created [v0.1.0](https://github.com/aiwindyjm/LLM-Zero-To-One/releases/tag/v0.1.0) at commit `1352a18caa062ba9e11798103e2c4406a428c9e2`.
+- All three published assets were downloaded: `llm-zero-to-one-0.1.0.tar.gz`, `source-manifest.json`, and `SHA256SUMS`. Both payload checksums matched. Archive SHA-256: `6f3c799718306aaee8e206d90d52288a670cd48316588580d8d2c2de8b3a8a0d`.
+- The downloaded archive was extracted into an independent directory with no existing `node_modules` or database. `pnpm install --frozen-lockfile` succeeded; the prebuilt production API and SPA started, served all five steps, and completed a real CPU experiment through the HTTP job API using the prepared WSL environment (0.2675 seconds, logits `(2,8,256)`). Fresh Python environment preparation also passed in Linux CI.
+- These post-publication checks are recorded after the immutable release was built; the archive itself contains the earlier, honestly pending publication checklist. No release tag or payload was rewritten to imply prior verification.
 
 ## Tutor boundary
 
