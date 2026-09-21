@@ -1,14 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Play, Square, RefreshCw } from 'lucide-react';
-import {
-  LESSON_ID,
-  LESSON_VERSION,
-  type EnvironmentStatus,
-  type ExperimentRun,
-  type RunEvent,
-} from '@llm/contracts';
+import { type EnvironmentStatus, type ExperimentRun, type RunEvent } from '@llm/contracts';
 import { api } from '../lib/api';
+import { useLesson, lessonQuery } from '../lib/lesson';
 import { Button } from './ui/button';
 
 const statusLabels = {
@@ -30,14 +25,15 @@ export function ExperimentPanel({
   length: number;
   onLength: (length: number) => void;
 }) {
+  const { lesson, experiment } = useLesson();
   const client = useQueryClient();
   const environment = useQuery({
     queryKey: ['environment'],
     queryFn: () => api<EnvironmentStatus>('/environment'),
   });
   const runs = useQuery({
-    queryKey: ['runs'],
-    queryFn: () => api<ExperimentRun[]>('/runs'),
+    queryKey: ['runs', lesson.id, lesson.version],
+    queryFn: () => api<ExperimentRun[]>(`/runs?${lessonQuery(lesson.id, lesson.version)}`),
     refetchInterval: 2500,
   });
   const [preset, setPreset] = useState<'cpu' | 'cuda'>('cpu');
@@ -71,9 +67,9 @@ export function ExperimentPanel({
   const start = useMutation({
     mutationFn: () =>
       api<ExperimentRun>('/runs', {
-        lessonId: LESSON_ID,
-        lessonVersion: LESSON_VERSION,
-        experimentId: 'forward-trace',
+        lessonId: lesson.id,
+        lessonVersion: lesson.version,
+        experimentId: experiment.id,
         preset,
         sequenceLength: length,
       }),
@@ -101,8 +97,13 @@ export function ExperimentPanel({
             value={preset}
             onChange={(event) => setPreset(event.target.value as 'cpu' | 'cuda')}
           >
-            <option value="cpu">CPU · float32</option>
-            <option value="cuda" disabled={!environment.data?.gpuAvailable}>
+            <option value="cpu">
+              CPU · {experiment.id === 'data-trace' ? 'int64' : 'float32'}
+            </option>
+            <option
+              value="cuda"
+              disabled={!environment.data?.gpuAvailable || !experiment.presets.includes('cuda')}
+            >
               CUDA · bfloat16
             </option>
           </select>
@@ -166,7 +167,7 @@ export function ExperimentPanel({
             ))}
           </div>
           <p className="muted small">
-            {run.result.trace
+            {run.result.trace || run.result.dataTrace
               ? '结果已保存。上方图解选择“实测回放”，逐步查看这次运行的切片。'
               : '历史结果保留；本次记录没有向量切片。'}
           </p>
@@ -216,7 +217,8 @@ export function ExperimentPanel({
         </div>
         {run?.result && (
           <p className="small">
-            初始化、采样与前向计算 {run.result.durationSeconds.toFixed(3)} s · CUDA 峰值张量分配{' '}
+            {experiment.id === 'data-trace' ? '分词、组批与目标切片' : '初始化、采样与前向计算'}{' '}
+            {run.result.durationSeconds.toFixed(3)} s · CUDA 峰值张量分配{' '}
             {run.preset === 'cuda' ? `${run.result.peakMemoryMb} MiB` : '不适用'} · 不包含 Python
             导入和驱动显存。
           </p>

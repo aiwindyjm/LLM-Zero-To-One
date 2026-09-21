@@ -153,7 +153,12 @@ export class JobManager {
           result = experimentResultSchema.parse(message.result);
           if (
             result.sequenceLength !== run.sequenceLength ||
-            result.shapes.logits?.join(',') !== `2,${run.sequenceLength},256`
+            (run.experimentId === 'forward-trace'
+              ? result.shapes.logits?.join(',') !== `2,${run.sequenceLength},256` ||
+                Boolean(result.dataTrace)
+              : !result.dataTrace ||
+                result.shapes.inputs?.join(',') !== `2,${run.sequenceLength}` ||
+                result.shapes.targets?.join(',') !== `2,${run.sequenceLength}`)
           )
             throw new Error('实验结果与请求不匹配');
         }
@@ -199,7 +204,7 @@ export class JobManager {
       this.next();
     });
     child.stdin.write(
-      `${JSON.stringify({ kind: 'run', preset: run.preset, sequenceLength: run.sequenceLength })}\n`,
+      `${JSON.stringify({ kind: 'run', preset: run.preset, sequenceLength: run.sequenceLength, experimentId: run.experimentId })}\n`,
     );
   }
 

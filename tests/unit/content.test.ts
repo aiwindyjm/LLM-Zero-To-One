@@ -1,9 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { validateContent, readSource, loadManifest } from '../../apps/api/src/content.js';
+import {
+  validateContent,
+  validateLibrary,
+  readSource,
+  loadManifest,
+} from '../../apps/api/src/content.js';
 import { findRoot } from '../../apps/api/src/paths.js';
 import { experimentRequestSchema } from '@llm/contracts';
 
 describe('trusted curriculum', () => {
+  it('validates every registered course and its independent experiment', () => {
+    const catalogs = validateLibrary(findRoot());
+    expect(catalogs.map((catalog) => catalog.experiment.id)).toEqual([
+      'forward-trace',
+      'data-trace',
+    ]);
+    expect(catalogs[1].lesson.steps.map((step) => step.id)).toEqual([
+      'tokenize',
+      'batch',
+      'targets',
+    ]);
+  });
   it('resolves all graph edges, prerequisites, source ranges and checksums', () => {
     const catalog = validateContent(findRoot());
     expect(catalog.lesson.steps).toHaveLength(5);

@@ -1547,3 +1547,71 @@ details > summary::marker {
     transition: none !important;
   }
 }
+/* Data lesson keeps long token sequences within the learning column. */
+.sidebar-heading select {
+  width: 100%;
+  min-width: 0;
+  margin-top: 12px;
+  font: inherit;
+}
+.data-document {
+  max-height: 80px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+.data-encoding,
+.data-pair {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.data-token-strip {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 6px 0;
+}
+.data-token-strip > * {
+  flex: 0 0 auto;
+  min-width: 34px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: monospace;
+}
+.data-token-strip button[aria-pressed='true'],
+.data-target-selected {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+.data-batch-grid > div {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 8px;
+}
+.data-batch-grid > div > span {
+  font-size: 12px;
+}
+.data-diagram .data-pair {
+  margin: 8px 0;
+}
+.data-diagram .data-token-strip {
+  padding: 4px 0;
+}
+.data-diagram .diagram-anchors {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+.data-diagram .diagram-anchors button {
+  font-size: 13px;
+  padding: 4px 0;
+  border-bottom: 2px solid transparent;
+}
+.data-diagram .diagram-anchors .active {
+  border-bottom-color: currentColor;
+}

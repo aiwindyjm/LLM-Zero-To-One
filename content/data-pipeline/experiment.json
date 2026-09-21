@@ -1,0 +1,9 @@
+{
+  "id": "data-trace",
+  "title": "真实分词与训练批次",
+  "description": "原创微型 Parquet 文本，调用固定 nanochat 分词器、装箱与输入目标错位。CPU 实验，不训练语言模型。",
+  "presets": ["cpu"],
+  "timeoutSeconds": 120,
+  "inputLengths": [8, 16, 32],
+  "commit": "92d63d4e8bb4df75c3b71618f31ddde2378b2bcd"
+}

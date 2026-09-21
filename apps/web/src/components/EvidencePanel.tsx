@@ -1,22 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowUpRight, BookOpen, MessageCircle, Send, Square } from 'lucide-react';
-import {
-  LESSON_ID,
-  LESSON_VERSION,
-  type Catalog,
-  type LearningStep,
-  type TutorMessage,
-} from '@llm/contracts';
+import { type Catalog, type LearningStep, type TutorMessage } from '@llm/contracts';
 import { api, tutorStream } from '../lib/api';
+import { useLesson, lessonQuery } from '../lib/lesson';
 import { Markdown } from './Markdown';
 import { Button } from './ui/button';
 
 function Tutor({ step }: { step: LearningStep }) {
+  const { lesson } = useLesson();
   const client = useQueryClient();
   const history = useQuery({
-    queryKey: ['tutor', step.id],
-    queryFn: () => api<TutorMessage[]>(`/tutor/messages?stepId=${step.id}`),
+    queryKey: ['tutor', lesson.id, lesson.version, step.id],
+    queryFn: () =>
+      api<TutorMessage[]>(
+        `/tutor/messages?${lessonQuery(lesson.id, lesson.version)}&stepId=${encodeURIComponent(step.id)}`,
+      ),
   });
   const [question, setQuestion] = useState('');
   const [mode, setMode] = useState<'explain' | 'hint'>('explain');
@@ -33,8 +32,8 @@ function Tutor({ step }: { step: LearningStep }) {
     try {
       await tutorStream(
         {
-          lessonId: LESSON_ID,
-          lessonVersion: LESSON_VERSION,
+          lessonId: lesson.id,
+          lessonVersion: lesson.version,
           stepId: step.id,
           message: question,
           mode,
@@ -55,7 +54,7 @@ function Tutor({ step }: { step: LearningStep }) {
       );
     } finally {
       setBusy(false);
-      void client.invalidateQueries({ queryKey: ['tutor', step.id] });
+      void client.invalidateQueries({ queryKey: ['tutor', lesson.id, lesson.version, step.id] });
     }
   };
   return (
@@ -65,7 +64,7 @@ function Tutor({ step }: { step: LearningStep }) {
         <div>
           <strong>只围绕你正在学的代码</strong>
           <p>
-            {step.title} · {LESSON_VERSION}
+            {step.title} · {lesson.version}
           </p>
         </div>
       </div>

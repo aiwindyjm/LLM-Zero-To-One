@@ -36,7 +36,7 @@ def stop_process():
 
 def run_experiment(request):
     global active_process
-    if set(request) != {"kind", "preset", "sequenceLength"} or request["kind"] != "run":
+    if set(request) not in ({"kind", "preset", "sequenceLength"}, {"kind", "preset", "sequenceLength", "experimentId"}) or request["kind"] != "run":
         raise ValueError("Invalid runner request")
     if request["preset"] not in {"cpu", "cuda"} or request["sequenceLength"] not in {8, 16, 32}:
         raise ValueError("Unsupported experiment preset")
@@ -47,7 +47,11 @@ def run_experiment(request):
         "OMP_NUM_THREADS": "4",
         "HF_HUB_OFFLINE": "1",
     }
-    command = [sys.executable, "-u", str(Path(__file__).with_name("experiment.py")), request["preset"], str(request["sequenceLength"])]
+    experiment = request.get("experimentId", "forward-trace")
+    if experiment not in {"forward-trace", "data-trace"} or (experiment == "data-trace" and request["preset"] != "cpu"):
+        raise ValueError("Unsupported experiment")
+    script = "experiment.py" if experiment == "forward-trace" else "data_experiment.py"
+    command = [sys.executable, "-u", str(Path(__file__).with_name(script)), request["preset"], str(request["sequenceLength"])]
     with lock:
         if cancelled:
             return
@@ -59,12 +63,24 @@ def run_experiment(request):
 
 def diagnose():
     import platform
+    import importlib
     import torch
+
+    for dependency in ("rustbpe", "tiktoken", "pyarrow", "requests"):
+        importlib.import_module(dependency)
 
     from experiment import verify_sources
 
     commit = verify_sources()
     emit({"kind": "diagnostic", "ready": True, "python": platform.python_version(), "torch": torch.__version__, "gpuAvailable": torch.cuda.is_available(), "gpuName": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None, "commit": commit, "message": "实验环境已就绪"})
+
+
+def supervised_run(request):
+    try:
+        run_experiment(request)
+    except Exception as error:
+        emit({"kind": "error", "message": f"{type(error).__name__}: {error}"})
+        emit({"kind": "exit", "code": 1, "cancelled": cancelled})
 
 
 def main():
@@ -79,7 +95,7 @@ def main():
             if request.get("kind") == "cancel":
                 stop_process()
             elif task is None:
-                task = threading.Thread(target=run_experiment, args=(request,), daemon=True)
+                task = threading.Thread(target=supervised_run, args=(request,), daemon=True)
                 task.start()
             else:
                 raise ValueError("Only one experiment per worker is allowed")
@@ -95,4 +111,3 @@ if __name__ == "__main__":
     except Exception as error:
         emit({"kind": "error", "message": str(error)})
         sys.exit(1)
-

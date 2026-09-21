@@ -30,17 +30,77 @@ export interface SourceManifest {
   }[];
 }
 
-export function loadContent(root: string): Catalog {
+export function loadContent(
+  root: string,
+  lessonId = 'nanochat-forward',
+  lessonVersion?: string,
+): Catalog {
   const read = (file: string): unknown =>
     JSON.parse(readFileSync(resolve(root, 'content', file), 'utf8'));
+  const registry = z
+    .array(
+      z.object({
+        id: z.string(),
+        version: z.string(),
+        directory: z
+          .string()
+          .regex(/^[a-z0-9/-]*$/)
+          .refine((value) => !value.includes('..')),
+      }),
+    )
+    .parse(read('lessons.json'));
+  const entry = registry.find(
+    (item) => item.id === lessonId && (!lessonVersion || item.version === lessonVersion),
+  );
+  if (!entry) throw Object.assign(new Error('课程或课程版本不存在。'), { statusCode: 404 });
+  const local = (file: string) => read(`${entry.directory}${file}`);
+  const lesson = lessonSchema.parse(local(`lessons/${entry.id}.json`));
+  if (lesson.id !== entry.id || lesson.version !== entry.version)
+    throw new Error('Lesson registry identity mismatch');
   return {
-    lesson: lessonSchema.parse(read('lessons/nanochat-forward.json')),
+    lesson,
     sources: z.array(sourceSchema).parse(read('sources.json')),
-    knowledge: z.array(knowledgeSchema).parse(read('knowledge.json')),
-    graph: graphSchema.parse(read('graph.json')),
+    knowledge: z.array(knowledgeSchema).parse(local('knowledge.json')),
+    graph: graphSchema.parse(local('graph.json')),
     curriculum: curriculumSchema.parse(read('curriculum.json')),
-    experiment: experimentDefinitionSchema.parse(read('experiment.json')),
+    experiment: experimentDefinitionSchema.parse(local('experiment.json')),
   };
+}
+
+export function loadAssessments(root: string, catalog: Catalog) {
+  const registry = JSON.parse(readFileSync(resolve(root, 'content/lessons.json'), 'utf8')) as {
+    id: string;
+    version: string;
+    directory: string;
+  }[];
+  const entry = registry.find(
+    (item) => item.id === catalog.lesson.id && item.version === catalog.lesson.version,
+  )!;
+  return z
+    .record(z.string(), z.object({ answer: z.string(), feedback: z.string() }))
+    .parse(
+      JSON.parse(
+        readFileSync(resolve(root, 'content', entry.directory, 'assessments.json'), 'utf8'),
+      ),
+    );
+}
+
+export function validateLibrary(root: string): Catalog[] {
+  const registry = JSON.parse(readFileSync(resolve(root, 'content/lessons.json'), 'utf8')) as {
+    id: string;
+    version: string;
+  }[];
+  if (new Set(registry.map((item) => `${item.id}:${item.version}`)).size !== registry.length)
+    throw new Error('Duplicate lesson version');
+  const catalogs = registry.map((item) => validateContent(root, item.id, item.version));
+  for (const chapter of catalogs[0].curriculum) {
+    if (
+      chapter.status === 'available' &&
+      !catalogs.some((item) => item.lesson.id === chapter.lessonId)
+    )
+      throw new Error(`Missing available lesson: ${chapter.id}`);
+  }
+  return catalogs;
 }
 
 export function loadManifest(root: string): SourceManifest {
@@ -56,8 +116,9 @@ export function readSource(root: string, path: string): string {
   return readFileSync(resolve(root, 'data/upstream/nanochat', file.path), 'utf8');
 }
 
-export function validateContent(root: string): Catalog {
-  const catalog = loadContent(root);
+export function validateContent(root: string, lessonId?: string, lessonVersion?: string): Catalog {
+  const catalog = loadContent(root, lessonId, lessonVersion);
+  const assessments = loadAssessments(root, catalog);
   const manifest = loadManifest(root);
   if (manifest.commit !== UPSTREAM_SHA || catalog.lesson.commit !== UPSTREAM_SHA)
     throw new Error('Upstream commit mismatch');
@@ -99,7 +160,8 @@ export function validateContent(root: string): Catalog {
   const knowledgeIds = new Set(catalog.knowledge.map((item) => item.id));
   const stepIds = new Set(steps.map((step) => step.id));
   for (const step of steps) {
-    if (step.diagram.kind !== step.id) throw new Error(`Diagram kind mismatch: ${step.id}`);
+    if (!assessments[step.id] || !step.choices.includes(assessments[step.id].answer))
+      throw new Error(`Missing assessment: ${step.id}`);
     ensureUnique(
       step.diagram.anchors.map((anchor) => anchor.id),
       'diagram anchors',

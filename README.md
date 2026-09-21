@@ -16,7 +16,7 @@ A local, open-source learning workspace built around **nanochat**. Follow a teac
 - SQLite progress and assessment history. Objective checks are distinguished from unreviewed explanations.
 - An optional, context-grounded Tutor using your own Chat Completions-compatible API.
 
-The remaining seven curriculum modules are **planned**, not completed courses. The sample runs a small configuration of the same real model class with random weights and synthetic IDs; it demonstrates data flow, not trained language ability.
+Published v0.2 images contain the first lesson. Current source adds a v0.3 development increment, **From text to training batches**, with three steps covering the real tokenizer, batch packing and shifted targets on a tiny original corpus. Progress, assessments, runs and Tutor history are isolated by course/version. Six further modules remain **planned**. Build from current source to use the second lesson; run `pnpm experiment:verify --data` to verify its CPU experiment. The first lesson still uses random model weights and synthetic IDs, demonstrating data flow rather than trained language ability.
 
 ## Docker quick start
 

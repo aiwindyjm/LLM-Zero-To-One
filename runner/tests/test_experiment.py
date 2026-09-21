@@ -41,3 +41,24 @@ def test_real_gpt_forward(length):
 def test_invalid_length_is_rejected():
     with pytest.raises(ValueError):
         execute("cpu", 999)
+
+
+@pytest.mark.parametrize("length", [8, 16, 32])
+def test_real_tokenizer_and_training_batch(length):
+    from data_experiment import execute as data_execute
+    result = data_execute("cpu", length)
+    trace = result["dataTrace"]
+    assert result["shapes"]["row_buffer"] == [2, length + 1]
+    assert result["shapes"]["inputs"] == result["shapes"]["targets"] == [2, length]
+    assert all(doc["text"] == doc["decoded"] for doc in trace["documents"])
+    for inputs, targets in zip(trace["inputs"], trace["targets"]):
+        assert inputs[0] == trace["bosId"]
+        assert inputs[1:] == targets[:-1]
+        assert all(0 <= token < trace["vocabSize"] for token in inputs + targets)
+    assert result["modelParameters"] == 0
+
+
+def test_data_rejects_unavailable_device():
+    from data_experiment import execute as data_execute
+    with pytest.raises(ValueError):
+        data_execute("cuda", 8)

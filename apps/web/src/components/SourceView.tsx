@@ -28,7 +28,10 @@ export function CodeLines({
   onSelect?: (line: number) => void;
   revealSelection?: boolean;
 }) {
-  const [highlighted, setHighlighted] = useState<string[]>([]);
+  const [highlighted, setHighlighted] = useState<{ content: string; lines: string[] }>({
+    content: '',
+    lines: [],
+  });
   const container = useRef<HTMLDivElement>(null);
   const selectedStart = selection?.startLine;
   useEffect(() => {
@@ -38,12 +41,15 @@ export function CodeLines({
       .then((html) => {
         const document = new DOMParser().parseFromString(html, 'text/html');
         if (current)
-          setHighlighted(
-            Array.from(document.querySelectorAll('code > .line')).map((line) => line.innerHTML),
-          );
+          setHighlighted({
+            content,
+            lines: Array.from(document.querySelectorAll('code > .line')).map(
+              (line) => line.innerHTML,
+            ),
+          });
       })
       .catch(() => {
-        if (current) setHighlighted([]);
+        if (current) setHighlighted({ content, lines: [] });
       });
     return () => {
       current = false;
@@ -78,8 +84,8 @@ export function CodeLines({
             ) : (
               <span className="line-number">{number}</span>
             )}
-            {highlighted[index] ? (
-              <code dangerouslySetInnerHTML={{ __html: highlighted[index] }} />
+            {highlighted.content === content && highlighted.lines[index] ? (
+              <code dangerouslySetInnerHTML={{ __html: highlighted.lines[index] }} />
             ) : (
               <code>{line || ' '}</code>
             )}

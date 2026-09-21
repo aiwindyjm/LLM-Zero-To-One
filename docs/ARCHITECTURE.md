@@ -2,6 +2,10 @@
 
 ## Boundaries
 
+The v0.3 development increment registers course/version directories in `content/lessons.json`. The API resolves authored catalogs, rejects unknown identities and mismatched experiment IDs, and scopes progress, assessment attempts, run lists and Tutor history to the selected course/version. Legacy requests default to the original lesson. No database migration or record reset is required.
+
+`data-trace` is an allowlisted CPU experiment using the pinned RustBPETokenizer and Parquet loader. `ExperimentResult.dataTrace` version 1 records bounded documents, token IDs and input/target rows; it is separate from the forward model trace. The data lesson trains only a tiny tokenizer vocabulary, not a language model. Dependencies are provisioned by the explicit setup command or image build.
+
 v0.2 adds authored `LearningStep.diagram` anchors and optional `ExperimentResult.trace` version 1 (six sampled positions, eight-dimensional slices, five candidates per batch). Legacy results remain valid. Assessments explicitly select B=2/T=8 evidence; explanation text is optional. Curriculum version 1.0.0 and previous learning records remain intact.
 
 The single learning container runs API and Python together. `LLM_CONTAINER=1` allows internal `0.0.0.0`; Compose publishes host loopback only. `LLM_RUNNER_PYTHON=/opt/runner/bin/python` selects the locked image environment. No Docker socket or network executor is introduced. Compose Watch uses a separate development volume. See [DOCKER.md](DOCKER.md).

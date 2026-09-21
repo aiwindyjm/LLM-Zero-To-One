@@ -5,13 +5,13 @@
 | 顺序                | 学习目标                                   | 状态           |
 | ------------------- | ------------------------------------------ | -------------- |
 | 01 一次完整预测     | 输入、Embedding、Block、Logits、下一 Token | 首版完整样板课 |
-| 02 文本与数据       | Tokenizer、数据集、批次、训练目标          | v0.2 计划      |
-| 03 向量与张量       | Embedding、矩阵变换、shape                 | v0.2 计划      |
-| 04 Attention 与位置 | QKV、Mask、RoPE、GQA                       | v0.2 计划      |
-| 05 Transformer      | MLP、归一化、残差、当前实现差异            | v0.2 计划      |
-| 06 学习与训练       | Loss、梯度、优化器、循环                   | v0.3 计划      |
-| 07 评估与推理       | Checkpoint、独立评估、KV Cache             | v0.3 计划      |
-| 08 聊天系统         | SFT、聊天评估、交互推理                    | v0.4 计划      |
+| 02 文本与数据       | Tokenizer、数据集、批次、训练目标          | v0.3 开发增量  |
+| 03 向量与张量       | Embedding、矩阵变换、shape                 | v0.3 计划      |
+| 04 Attention 与位置 | QKV、Mask、RoPE、GQA                       | v0.3 计划      |
+| 05 Transformer      | MLP、归一化、残差、当前实现差异            | v0.3 计划      |
+| 06 学习与训练       | Loss、梯度、优化器、循环                   | v0.4 计划      |
+| 07 评估与推理       | Checkpoint、独立评估、KV Cache             | v0.4 计划      |
+| 08 聊天系统         | SFT、聊天评估、交互推理                    | v0.5 计划      |
 
 每步包含目标、前置知识、固定源码引用、输入输出、讲解、可信资料、实验和验收。前置知识是推荐教学顺序，不强制阻止浏览。
 
@@ -20,3 +20,5 @@
 打开 `content/` 作为 Obsidian vault；直接编辑同一教材文件。JSON 维护稳定元信息和关联，解释字段支持 Markdown/数学公式。未来可拆为 Markdown 文件，但不能制造第二套正文。
 
 新课先写学习目标和实验判定，再映射上游代码，最后撰写解释。运行 `pnpm content:check`，增加对应实验与验收测试，并在 PR 中附运行证据。用 `feat(content)` 提交新课，`fix(content)` 提交影响正确性的修正。
+
+`content/lessons.json` 注册课程 ID、版本与内容目录。第一课保留根目录布局，第二课位于 `content/data-pipeline/`。每个目录包含 lesson、knowledge、graph、experiment 与 assessments；sources 和 curriculum 在根目录共享。课程更新保留旧版本条目与文件，不覆盖已经绑定学习记录的版本。查询省略版本时使用注册表中该课程的首个条目；正式客户端总是传递明确版本。

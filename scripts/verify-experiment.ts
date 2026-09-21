@@ -8,6 +8,7 @@ import { runnerCommand } from '../apps/api/src/runner-command.js';
 
 const root = findRoot();
 const preset = process.argv.includes('--cuda') ? 'cuda' : 'cpu';
+const data = process.argv.includes('--data');
 const command = runnerCommand(root);
 const child = spawn(command.command, command.args, { windowsHide: true, stdio: 'pipe' });
 let verified = false;
@@ -23,10 +24,15 @@ createInterface({ input: child.stdout }).on('line', (line) => {
   const event = JSON.parse(line);
   if (event.kind === 'result') {
     const result = experimentResultSchema.parse(event.result);
-    if (result.shapes.logits.join(',') !== '2,8,256') throw new Error('Invalid output shape');
+    if (
+      data
+        ? !result.dataTrace || result.shapes.inputs.join(',') !== '2,8'
+        : result.shapes.logits.join(',') !== '2,8,256'
+    )
+      throw new Error('Invalid output shape');
     mkdirSync(resolve(root, '.local/validation'), { recursive: true });
     writeFileSync(
-      resolve(root, `.local/validation/${preset}.json`),
+      resolve(root, `.local/validation/${data ? 'data-' : ''}${preset}.json`),
       JSON.stringify(result, null, 2),
     );
     console.log(JSON.stringify(result, null, 2));
@@ -46,4 +52,6 @@ child.on('close', (code) => {
   clearTimeout(watchdog);
   process.exitCode = code === 0 && verified ? 0 : 1;
 });
-child.stdin.write(`${JSON.stringify({ kind: 'run', preset, sequenceLength: 8 })}\n`);
+child.stdin.write(
+  `${JSON.stringify({ kind: 'run', preset, sequenceLength: 8, experimentId: data ? 'data-trace' : 'forward-trace' })}\n`,
+);

@@ -2,37 +2,42 @@ import { useState, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import {
-  LESSON_ID,
-  LESSON_VERSION,
   type LearningStep,
   type ExperimentRun,
   type AssessmentAttempt,
   type CodeReference,
 } from '@llm/contracts';
 import { api } from '../lib/api';
+import { useLesson, lessonQuery } from '../lib/lesson';
+import { DataDiagram } from './DataDiagram';
 import { Markdown } from './Markdown';
 import { CodeLines, type SourcePayload } from './SourceView';
 import { LearningDiagram } from './LearningDiagram';
 import { Button } from './ui/button';
 
 function Assessment({ step, onExperiment }: { step: LearningStep; onExperiment: () => void }) {
+  const { lesson, experiment } = useLesson();
   const client = useQueryClient();
   const [answer, setAnswer] = useState('');
   const [explanation, setExplanation] = useState('');
   const [runId, setRunId] = useState('');
-  const runs = useQuery({ queryKey: ['runs'], queryFn: () => api<ExperimentRun[]>('/runs') });
+  const runs = useQuery({
+    queryKey: ['runs', lesson.id, lesson.version],
+    queryFn: () => api<ExperimentRun[]>(`/runs?${lessonQuery(lesson.id, lesson.version)}`),
+  });
   const evidence = runs.data?.filter(
     (run) =>
       run.status === 'succeeded' &&
-      run.lessonId === LESSON_ID &&
-      run.lessonVersion === LESSON_VERSION &&
+      run.lessonId === lesson.id &&
+      run.lessonVersion === lesson.version &&
+      run.experimentId === experiment.id &&
       run.sequenceLength === 8,
   );
   const submit = useMutation({
     mutationFn: () =>
       api<{ attempt: AssessmentAttempt; feedback: string; note: string }>('/assessments', {
-        lessonId: LESSON_ID,
-        lessonVersion: LESSON_VERSION,
+        lessonId: lesson.id,
+        lessonVersion: lesson.version,
         stepId: step.id,
         answer,
         explanation,
@@ -44,7 +49,11 @@ function Assessment({ step, onExperiment }: { step: LearningStep; onExperiment: 
     <section className="assessment" aria-label="本步自测">
       <div className="section-heading">
         <h3>预测一下</h3>
-        <span>自测固定 B=2、T=8、C=128、V=256</span>
+        <span>
+          {experiment.id === 'forward-trace'
+            ? '自测固定 B=2、T=8、C=128、V=256'
+            : '自测固定 B=2、T=8'}
+        </span>
       </div>
       <p>{step.question}</p>
       <fieldset className="answer-choices">
@@ -149,6 +158,7 @@ export function GuideView({
   onExperiment: () => void;
   experiment: ReactNode;
 }) {
+  const { experiment: definition } = useLesson();
   const reference = step.code.find((code) => code.id === anchor.codeId)!;
   const selected = { ...reference, startLine: anchor.startLine, endLine: anchor.endLine };
   const source = useQuery({
@@ -171,14 +181,24 @@ export function GuideView({
         </div>
         <p>{step.diagram.prompt}</p>
       </header>
-      <LearningDiagram
-        key={`${step.id}-${run?.id || 'illustration'}`}
-        step={step}
-        anchor={anchor}
-        onAnchor={onAnchor}
-        run={run}
-        previewLength={previewLength}
-      />
+      {definition.id === 'data-trace' ? (
+        <DataDiagram
+          step={step}
+          anchor={anchor}
+          onAnchor={onAnchor}
+          run={run}
+          previewLength={previewLength}
+        />
+      ) : (
+        <LearningDiagram
+          key={`${step.id}-${run?.id || 'illustration'}`}
+          step={step}
+          anchor={anchor}
+          onAnchor={onAnchor}
+          run={run}
+          previewLength={previewLength}
+        />
+      )}
       <section className="linked-source" aria-label="对应源码">
         <div className="code-card-heading">
           <span>
@@ -218,7 +238,11 @@ export function GuideView({
       <Assessment key={step.id} step={step} onExperiment={onExperiment} />
       {experiment}
       <div className="lesson-footer">
-        <span>合成 ID · 随机权重，本课验证计算流程</span>
+        <span>
+          {definition.id === 'data-trace'
+            ? '原创微型文本 · 教学词表 · 未训练语言模型'
+            : '合成 ID · 随机权重，本课验证计算流程'}
+        </span>
         <Button onClick={onNext}>
           {index === total - 1 ? '回顾这节课' : '下一步'}
           <ArrowRight size={16} />
