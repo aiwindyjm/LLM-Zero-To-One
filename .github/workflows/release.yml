@@ -58,5 +58,6 @@ jobs:
               pnpm build
               pnpm release:package
               gh release upload "v$version" .local/release/*.tar.gz .local/release/source-manifest.json .local/release/SHA256SUMS --clobber
+              pnpm exec tsx scripts/release-notes.ts
             fi
           fi
