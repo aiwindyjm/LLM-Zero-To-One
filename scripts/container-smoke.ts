@@ -45,16 +45,16 @@ async function terminal(id: string) {
   throw new Error('Experiment did not finish');
 }
 await connect();
-const { run: started } = await api('/runs', request);
+const started = await api('/runs', request);
 const result = await terminal(started.id);
 assert.equal(result.status, 'succeeded', result.error);
 experimentResultSchema.parse(result.result);
 assert.equal(result.result.trace.version, 1);
-const { run: cancelled } = await api('/runs', request);
+const cancelled = await api('/runs', request);
 await api(`/runs/${cancelled.id}/cancel`, {});
 assert.equal((await terminal(cancelled.id)).status, 'cancelled');
 if (container) {
-  const { run: interrupted } = await api('/runs', request);
+  const interrupted = await api('/runs', request);
   execFileSync('docker', ['restart', container], { stdio: 'inherit' });
   await connect();
   assert.equal((await api(`/runs/${started.id}`)).run.status, 'succeeded');
