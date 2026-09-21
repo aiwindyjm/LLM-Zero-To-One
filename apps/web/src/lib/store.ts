@@ -7,6 +7,7 @@ interface Preferences {
   rightWidth: number;
   leftHidden: boolean;
   rightHidden: boolean;
+  location: string;
   set: (value: Partial<Omit<Preferences, 'set'>>) => void;
 }
 
@@ -14,12 +15,17 @@ export const usePreferences = create<Preferences>()(
   persist(
     (set) => ({
       theme: 'light',
-      leftWidth: 260,
-      rightWidth: 360,
+      leftWidth: 220,
+      rightWidth: 300,
       leftHidden: false,
       rightHidden: false,
+      location: '',
       set: (value) => set(value),
     }),
-    { name: 'llm-zero-to-one-ui', version: 1 },
+    {
+      name: 'llm-zero-to-one-ui',
+      version: 2,
+      migrate: (saved) => ({ ...(saved as Partial<Preferences>), leftWidth: 220, rightWidth: 300 }),
+    },
   ),
 );

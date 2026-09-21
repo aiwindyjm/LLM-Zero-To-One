@@ -6,7 +6,7 @@
 
 以 **nanochat** 为贯穿主线的本地开源学习工作区。左侧按理解顺序组织课程，中间联动导学讲解、真实源码和关系网络，右侧关联知识与原始资料。一个原理涉及哪些文件和方法，可以直接在网络中追踪。
 
-## 首版可以做什么
+## 交互教材可以做什么
 
 - 完成五个步骤的真实前向计算样板课：输入 → Embedding → Block → Logits → 下一 Token。
 - 查看固定 Commit 的完整源码、精确行号、实际 Commit Diff 与引用证据。
@@ -17,7 +17,15 @@
 
 其他七个教学模块目前是**路线规划**，不是已完成课程。样板实验使用同一真实 GPT 类的小配置、随机权重和合成 Token ID，验证数据流，不代表已训练出有语言能力的模型。
 
-## 快速开始
+## Docker 快速开始
+
+启动 Docker Desktop，使用 Linux containers。克隆仓库后运行 `docker compose pull` 和 `docker compose up -d --no-build --wait`，访问 http://127.0.0.1:4310。NVIDIA GPU 安装在两条命令中都使用 `docker compose -f compose.yaml -f compose.cuda.yaml`。样板课默认 CPU，可显式切换 CUDA。
+
+平台随 Docker Desktop 恢复（`unless-stopped`），依赖已包含在镜像中。开发热更新、迁移、备份、升级和故障处理见[双语 Docker 指南](docs/DOCKER.md)。
+
+五个步骤通过可操作张量图解联动真实源码和内嵌实验；实测切片明确标为回放，与示意和历史数据区分。客观验收显式选择 B=2/T=8 的运行记录，解释可选填写。
+
+## 原生快速开始
 
 安装 Node.js 24 LTS、pnpm 10.34.5 和 Git。运行实验需要 Linux，或带 Ubuntu 的 Windows WSL；环境准备命令会安装独立的 Python 3.12。只读教材时不需要先安装 Python 环境。
 
@@ -68,16 +76,17 @@ pnpm release:check --message "feat(content): add a lesson"
 
 阅读[贡献指南](CONTRIBUTING.zh-CN.md)、[课程地图](docs/CURRICULUM.md)、[发布策略](docs/RELEASING.md)、[环境说明](docs/SETUP.md)和[验证记录](docs/VALIDATION.md)。Obsidian 直接打开 `content/`，Web 使用同一内容源。
 
-学习记录保存在 `.local/data/learning.db`。备份前停止服务，再复制 `.local/data/`。数据库、Key、下载环境和模型 Checkpoint 不进入 Git 或发布包。
+原生学习记录保存在 `.local/data/learning.db`，Docker 使用命名卷。通过 `pnpm data backup <新文件>` 或容器导出建立一致 SQLite 备份。数据库、Key、下载环境和模型 Checkpoint 不进入 Git 或发布包。
 
 ## 发布路线
 
 | 版本 | 里程碑                                             |
 | ---- | -------------------------------------------------- |
 | 0.1  | 三栏工作区、关系网络、样板课、一键实验、可选 Tutor |
-| 0.2  | 数据与模型核心课程                                 |
-| 0.3  | 小规模训练、Checkpoint 和评估                      |
-| 0.4  | SFT、推理和聊天闭环                                |
+| 0.2  | 交互教材、张量回放、Docker 工作空间                |
+| 0.3  | 数据与模型核心课程                                 |
+| 0.4  | 小规模训练、Checkpoint 和评估                      |
+| 0.5  | SFT、推理和聊天闭环                                |
 | 1.0  | 经过系统验证的完整主线课程                         |
 
 每次提交判断发布影响。功能和修复进入主线后，由 Release Please 更新发布 PR；满足验收并合并该 PR 后创建真正的 GitHub Release。

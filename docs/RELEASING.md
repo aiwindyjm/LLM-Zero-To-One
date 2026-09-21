@@ -20,9 +20,10 @@ Use `feat(content)` for new lessons and `fix(content)` for correctness changes. 
 | Target | Acceptance                                                                                                   |
 | ------ | ------------------------------------------------------------------------------------------------------------ |
 | v0.1.0 | Three-panel workspace, graph, one complete sample, local runner, persistence, optional Tutor, bilingual docs |
-| v0.2.0 | Continuous data and core-model lessons                                                                       |
-| v0.3.0 | RTX 3080 small training, checkpointing and evaluation                                                        |
-| v0.4.0 | SFT, inference and chat loop                                                                                 |
+| v0.2.0 | Interactive textbook, real tensor replay, Docker learning/development                                        |
+| v0.3.0 | Continuous data and core-model lessons                                                                       |
+| v0.4.0 | RTX 3080 small training, checkpointing and evaluation                                                        |
+| v0.5.0 | SFT, inference and chat loop                                                                                 |
 | v1.0.0 | End-to-end curriculum with reproducibility and learning validation                                           |
 
 Patch versions can be released between milestones. 1.0 is a deliberate acceptance decision, not a calendar deadline. Planned modules remain marked planned until their content and experiments are verified.
@@ -34,7 +35,7 @@ Patch versions can be released between milestones. 1.0 is a deliberate acceptanc
 3. Release Please creates/updates a release PR using `GITHUB_TOKEN`.
 4. The workflow explicitly dispatches `verify.yml` on the release branch, so checks do not depend on token-created events automatically triggering another workflow.
 5. After reviewing the milestone evidence, merge the release PR. Its main workflow creates the version tag and GitHub Release.
-6. That same workflow packages the source plus prebuilt Web/API and uploads the `.tar.gz`, `source-manifest.json`, and `SHA256SUMS`.
+6. That same workflow packages source plus prebuilt Web/API, Compose files, manifest and checksums, then builds CPU/CUDA images in separate jobs, executes a real CPU experiment in each and publishes versioned GHCR tags. Local GPU execution is a separate acceptance requirement. Image jobs run in the release workflow, not on a token-generated tag event; retries reuse the immutable release commit. Verify anonymous image pulls and package visibility after the first publication.
 
 The root `package.json` is the single product version. Workspace packages are private and are not published to npm. All actions are pinned to commit SHAs.
 

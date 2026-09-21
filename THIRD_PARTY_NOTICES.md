@@ -19,4 +19,10 @@ shadcn/ui notice: Copyright (c) 2023 shadcn. Permission is granted under the MIT
 
 ## Papers and documentation
 
+## Bundled fonts
+
+Chiron Hei HK by Tamcy (2023–2026), based on Adobe Source Han Sans (2014–2025), is distributed through `chiron-hei-hk-webfont-truetype` 2.6.9 (the emfont webfont package). JetBrains Mono is distributed through `@fontsource/jetbrains-mono` 5.2.8. Both use SIL OFL 1.1; font licensing is independent of the program MIT license. Local font subsets are served by the application, without a runtime font CDN.
+
+The original notices and full licenses ship in `apps/web/public/fonts/licenses/` and the built `/fonts/licenses/` directory. Sources: https://github.com/chiron-fonts/chiron-hei-hk/blob/main/LICENSE.md and https://github.com/JetBrains/JetBrainsMono/blob/master/OFL.txt.
+
 The platform links to original PyTorch documentation and the Transformer paper. It does not redistribute entire papers or third-party documentation. Source metadata records why each resource is relevant; original authors retain their rights.

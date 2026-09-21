@@ -12,11 +12,15 @@ const children = [
     ['--env-file-if-exists=.env', '--import', 'tsx', 'apps/api/src/main.ts'],
     { cwd: root, stdio: 'inherit', windowsHide: true },
   ),
-  spawn(process.execPath, [vite, '--host', '127.0.0.1'], {
-    cwd: resolve(root, 'apps/web'),
-    stdio: 'inherit',
-    windowsHide: true,
-  }),
+  spawn(
+    process.execPath,
+    [vite, '--host', process.env.LLM_CONTAINER === '1' ? '0.0.0.0' : '127.0.0.1'],
+    {
+      cwd: resolve(root, 'apps/web'),
+      stdio: 'inherit',
+      windowsHide: true,
+    },
+  ),
 ];
 let stopping = false;
 function stop(code = 0) {

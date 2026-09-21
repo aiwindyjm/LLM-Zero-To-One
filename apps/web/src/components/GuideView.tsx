@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, ArrowUpRight, FlaskConical, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import {
   LESSON_ID,
   LESSON_VERSION,
@@ -12,15 +12,21 @@ import {
 import { api } from '../lib/api';
 import { Markdown } from './Markdown';
 import { CodeLines, type SourcePayload } from './SourceView';
+import { LearningDiagram } from './LearningDiagram';
 import { Button } from './ui/button';
 
-function Assessment({ step }: { step: LearningStep }) {
+function Assessment({ step, onExperiment }: { step: LearningStep; onExperiment: () => void }) {
   const client = useQueryClient();
   const [answer, setAnswer] = useState('');
   const [explanation, setExplanation] = useState('');
+  const [runId, setRunId] = useState('');
   const runs = useQuery({ queryKey: ['runs'], queryFn: () => api<ExperimentRun[]>('/runs') });
-  const successful = runs.data?.find(
-    (run) => run.status === 'succeeded' && run.lessonVersion === LESSON_VERSION,
+  const evidence = runs.data?.filter(
+    (run) =>
+      run.status === 'succeeded' &&
+      run.lessonId === LESSON_ID &&
+      run.lessonVersion === LESSON_VERSION &&
+      run.sequenceLength === 8,
   );
   const submit = useMutation({
     mutationFn: () =>
@@ -30,16 +36,16 @@ function Assessment({ step }: { step: LearningStep }) {
         stepId: step.id,
         answer,
         explanation,
-        ...(successful ? { runId: successful.id } : {}),
+        ...(runId ? { runId } : {}),
       }),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: ['progress'] });
-    },
+    onSuccess: () => void client.invalidateQueries({ queryKey: ['progress'] }),
   });
   return (
-    <section className="assessment">
-      <div className="section-eyebrow">CHECK YOUR UNDERSTANDING</div>
-      <h3>先预测，再验证</h3>
+    <section className="assessment" aria-label="本步自测">
+      <div className="section-heading">
+        <h3>预测一下</h3>
+        <span>自测固定 B=2、T=8、C=128、V=256</span>
+      </div>
       <p>{step.question}</p>
       <fieldset className="answer-choices">
         <legend className="sr-only">选择预测的形状</legend>
@@ -56,27 +62,44 @@ function Assessment({ step }: { step: LearningStep }) {
           </label>
         ))}
       </fieldset>
-      <label className="explanation-label" htmlFor="explanation">
-        用自己的话解释这次变换
+      <details className="reflection">
+        <summary>写下我的理解（可选）</summary>
+        <label htmlFor="explanation">用自己的话解释这次变换</label>
         <textarea
           id="explanation"
           value={explanation}
           onChange={(event) => setExplanation(event.target.value)}
-          placeholder="哪些轴保留了？哪一根轴发生变化？为什么？"
-          rows={3}
+          rows={2}
+          placeholder="哪根轴变了？为什么？"
         />
+      </details>
+      <label className="assessment-evidence">
+        关联运行证据
+        <select
+          aria-label="选择验收实验"
+          value={runId}
+          onChange={(event) => setRunId(event.target.value)}
+        >
+          <option value="">先检查预测，不关联实验</option>
+          {evidence?.map((run) => (
+            <option key={run.id} value={run.id}>
+              {new Date(run.createdAt).toLocaleString()} · {run.preset.toUpperCase()} · T=8 ·{' '}
+              {run.id.slice(0, 8)}
+            </option>
+          ))}
+        </select>
       </label>
       <div className="assessment-actions">
         <Button
           variant="outline"
           onClick={() => submit.mutate()}
-          disabled={!answer || explanation.trim().length < 12 || submit.isPending}
+          disabled={!answer || submit.isPending}
         >
-          {submit.isPending ? '保存中…' : '提交验收'}
+          {submit.isPending ? '保存中…' : '检查预测'}
         </Button>
-        <span className="muted small">
-          {successful ? '已关联本课成功实验' : '完成实验后，可验证客观项'}
-        </span>
+        <Button variant="ghost" onClick={onExperiment}>
+          用实验验证
+        </Button>
       </div>
       {submit.error && (
         <p role="alert" className="error-message">
@@ -84,15 +107,17 @@ function Assessment({ step }: { step: LearningStep }) {
         </p>
       )}
       {submit.data && (
-        <div
-          className={submit.data.attempt.objectivePassed ? 'feedback success-feedback' : 'feedback'}
-          role="status"
-        >
+        <div className="feedback" role="status">
           <strong>
             {submit.data.attempt.objectivePassed ? '客观题回答正确' : '再检查一下张量的轴'}
           </strong>
           <p>{submit.data.feedback}</p>
-          <small>{submit.data.note}</small>
+          <small>
+            {submit.data.attempt.explanationStatus === 'not_provided'
+              ? '未记录解释。'
+              : '解释已保存，尚未评审。'}
+            {runId ? '已关联所选实验。' : '还未关联实验验证。'}
+          </small>
         </div>
       )}
     </section>
@@ -103,18 +128,29 @@ export function GuideView({
   step,
   index,
   total,
+  anchor,
+  onAnchor,
   onSource,
-  onExperiment,
   onNext,
+  run,
+  previewLength,
+  onExperiment,
+  experiment,
 }: {
   step: LearningStep;
   index: number;
   total: number;
+  anchor: LearningStep['diagram']['anchors'][number];
+  onAnchor: (anchor: LearningStep['diagram']['anchors'][number]) => void;
   onSource: (reference: CodeReference) => void;
-  onExperiment: () => void;
   onNext: () => void;
+  run?: ExperimentRun;
+  previewLength: number;
+  onExperiment: () => void;
+  experiment: ReactNode;
 }) {
-  const reference = step.code[0];
+  const reference = step.code.find((code) => code.id === anchor.codeId)!;
+  const selected = { ...reference, startLine: anchor.startLine, endLine: anchor.endLine };
   const source = useQuery({
     queryKey: ['source', reference.file],
     queryFn: () => api<SourcePayload>(`/source?file=${encodeURIComponent(reference.file)}`),
@@ -122,85 +158,69 @@ export function GuideView({
   });
   const snippet = source.data?.content
     .split('\n')
-    .slice(reference.startLine - 1, reference.endLine)
+    .slice(anchor.startLine - 1, anchor.endLine)
     .join('\n');
   return (
     <article className="guide-view">
-      <div className="lesson-kicker">
-        <span>源码导学 / NANOCHAT</span>
-        <span>
-          步骤 {String(index + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
-        </span>
-      </div>
-      <h1>{step.title.slice(5)}</h1>
-      <p className="guide-subtitle">{step.subtitle}</p>
-      <div className="objective">
-        <CheckCircle2 size={18} />
+      <header className="lesson-heading">
         <div>
-          <strong>这一小步，你会搞懂</strong>
-          <p>{step.objective}</p>
+          <span className="step-number">
+            {String(index + 1).padStart(2, '0')} / {total}
+          </span>
+          <h1>{step.title.slice(5)}</h1>
         </div>
-      </div>
-      <div className="shape-flow">
-        <div>
-          <span>输入</span>
-          <code>{step.input}</code>
-        </div>
-        <ArrowRight size={19} />
-        <div>
-          <span>输出</span>
-          <code>{step.output}</code>
-        </div>
-      </div>
-      <section className="code-card">
+        <p>{step.diagram.prompt}</p>
+      </header>
+      <LearningDiagram
+        key={`${step.id}-${run?.id || 'illustration'}`}
+        step={step}
+        anchor={anchor}
+        onAnchor={onAnchor}
+        run={run}
+        previewLength={previewLength}
+      />
+      <section className="linked-source" aria-label="对应源码">
         <div className="code-card-heading">
           <span>
-            <i className="python-dot" />
-            {reference.file}
-            <code>
-              L{reference.startLine}–{reference.endLine}
-            </code>
+            <code>{reference.file}</code> · L{anchor.startLine}–{anchor.endLine}
           </span>
-          <button onClick={() => onSource(reference)}>
-            完整源码 <ArrowUpRight size={15} />
+          <button onClick={() => onSource(selected)}>
+            完整源码 <ArrowUpRight size={14} />
           </button>
         </div>
         {snippet ? (
-          <CodeLines content={snippet} startLine={reference.startLine} />
+          <CodeLines
+            content={snippet}
+            startLine={anchor.startLine}
+            selection={selected}
+            revealSelection={false}
+            onSelect={(line) => {
+              const target = step.diagram.anchors.find(
+                (item) =>
+                  item.codeId === reference.id && line >= item.startLine && line <= item.endLine,
+              );
+              if (target) onAnchor(target);
+            }}
+          />
         ) : (
-          <p className="loading-line">{source.error?.message || '正在读取真实源码…'}</p>
+          <p>{source.error?.message || '读取固定源码…'}</p>
         )}
-        <div className="code-card-footer">
-          <span>Source · {reference.symbol}</span>
-          <code>{reference.commit.slice(0, 8)}</code>
-        </div>
       </section>
-      <Markdown>{step.explanation}</Markdown>
-      {step.code.length > 1 && (
-        <div className="related-code">
-          <span>继续追踪</span>
-          {step.code.slice(1).map((code) => (
-            <button key={code.id} onClick={() => onSource(code)}>
-              {code.symbol}
-              <code>L{code.startLine}</code>
-              <ArrowUpRight size={14} />
-            </button>
-          ))}
-        </div>
-      )}
-      <button className="experiment-callout" onClick={onExperiment}>
-        <FlaskConical size={23} />
-        <span>
-          <strong>把预测交给真实代码验证</strong>
-          <small>运行同一份 nanochat，查看每个站点的 Shape。</small>
-        </span>
-        <ArrowRight size={19} />
-      </button>
-      <Assessment key={step.id} step={step} />
+      <details className="full-explanation">
+        <summary>展开原理与实现细节</summary>
+        <Markdown>{step.explanation}</Markdown>
+        {step.code.map((code) => (
+          <button className="source-reference" key={code.id} onClick={() => onSource(code)}>
+            {code.symbol} · L{code.startLine} <ArrowUpRight size={14} />
+          </button>
+        ))}
+      </details>
+      <Assessment key={step.id} step={step} onExperiment={onExperiment} />
+      {experiment}
       <div className="lesson-footer">
-        <span className="muted">可以随时回到前面的步骤，不必依赖 AI 解锁。</span>
+        <span>合成 ID · 随机权重，本课验证计算流程</span>
         <Button onClick={onNext}>
-          {index === total - 1 ? '回顾第一步' : '下一步'}
+          {index === total - 1 ? '回顾这节课' : '下一步'}
           <ArrowRight size={16} />
         </Button>
       </div>

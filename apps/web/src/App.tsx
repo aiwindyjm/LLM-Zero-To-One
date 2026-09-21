@@ -1,18 +1,12 @@
-import { lazy, Suspense, useEffect, useState, type CSSProperties } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowUpRight,
   BookOpen,
   Check,
-  ChevronDown,
-  ChevronRight,
-  Circle,
   Code2,
   FileCode2,
-  FlaskConical,
   Github,
-  GitCommitHorizontal,
   Menu,
   Moon,
   Network,
@@ -22,56 +16,75 @@ import {
 import {
   LESSON_ID,
   LESSON_VERSION,
+  type AssessmentAttempt,
   type Catalog,
   type CodeReference,
+  type ExperimentRun,
   type LearningGraph,
+  type LearningStep,
   type StepProgress,
-  type AssessmentAttempt,
 } from '@llm/contracts';
+import product from '../../../package.json';
 import { api } from './lib/api';
 import { usePreferences } from './lib/store';
-import { Button } from './components/ui/button';
-import { Dialog } from './components/ui/dialog';
 import { GuideView } from './components/GuideView';
 import { SourceView } from './components/SourceView';
 import { EvidencePanel } from './components/EvidencePanel';
 import { ExperimentPanel } from './components/ExperimentPanel';
-import product from '../../../package.json';
+import { Button } from './components/ui/button';
+import { Dialog } from './components/ui/dialog';
 
 const GraphView = lazy(() =>
   import('./components/GraphView').then((module) => ({ default: module.GraphView })),
 );
-type View = 'guide' | 'source' | 'graph';
+type View = 'guide' | 'source' | 'graph' | 'review';
 
 export default function App() {
+  const preferences = usePreferences();
+  const [params, setParams] = useSearchParams(preferences.location);
+  const client = useQueryClient();
   const catalog = useQuery({
     queryKey: ['catalog'],
     queryFn: () => api<Catalog>('/catalog'),
     staleTime: Infinity,
   });
-  const [params, setParams] = useSearchParams();
-  const preferences = usePreferences();
-  const client = useQueryClient();
-  const [experimentOpen, setExperimentOpen] = useState(false);
-  const [leftDrawer, setLeftDrawer] = useState(false);
-  const [rightDrawer, setRightDrawer] = useState(false);
-  const [navigation, setNavigation] = useState<'learning' | 'files'>('learning');
-  const [planned, setPlanned] = useState<Catalog['curriculum'][number] | null>(null);
-  const [selectedKnowledge, setSelectedKnowledge] = useState<string>();
   const progress = useQuery({
     queryKey: ['progress'],
     queryFn: () => api<{ steps: StepProgress[]; attempts: AssessmentAttempt[] }>('/progress'),
   });
+  const runId = params.get('run');
+  const run = useQuery({
+    queryKey: ['run', runId],
+    queryFn: () => api<{ run: ExperimentRun }>(`/runs/${runId}`),
+    enabled: Boolean(runId),
+    refetchInterval: (query) =>
+      ['running', 'queued'].includes(query.state.data?.run.status || '') ? 1000 : false,
+  });
+  const [leftDrawer, setLeftDrawer] = useState(false);
+  const [rightDrawer, setRightDrawer] = useState(false);
+  const [navigation, setNavigation] = useState<'learning' | 'files'>('learning');
+  const [experimentOpen, setExperimentOpen] = useState(false);
+  const [selectedKnowledge, setSelectedKnowledge] = useState<string>();
+  const experimentRef = useRef<HTMLDetailsElement>(null);
   const data = catalog.data;
   const step =
     data?.lesson.steps.find((entry) => entry.id === params.get('step')) || data?.lesson.steps[0];
-  const selectedStepId = step?.id;
   const view = (
-    ['guide', 'source', 'graph'].includes(params.get('view') || '') ? params.get('view') : 'guide'
+    ['guide', 'source', 'graph', 'review'].includes(params.get('view') || '')
+      ? params.get('view')
+      : 'guide'
   ) as View;
+  const selectedStepId = step?.id;
+  const length = [8, 16, 32].includes(Number(params.get('length')))
+    ? Number(params.get('length'))
+    : 8;
   useEffect(() => {
     document.documentElement.dataset.theme = preferences.theme;
   }, [preferences.theme]);
+  const savePreferences = preferences.set;
+  useEffect(() => {
+    savePreferences({ location: params.toString() });
+  }, [params, savePreferences]);
   useEffect(() => {
     if (!selectedStepId) return;
     void api('/progress', {
@@ -82,138 +95,163 @@ export default function App() {
       .then(() => client.invalidateQueries({ queryKey: ['progress'] }))
       .catch(() => {});
   }, [selectedStepId, client]);
+  useEffect(() => {
+    if (experimentOpen && view === 'guide')
+      experimentRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [experimentOpen, view]);
   if (catalog.isPending)
     return (
       <div className="boot-screen">
-        <div className="brand-symbol">0→1</div>
-        <h1>正在打开源码学习工作区</h1>
-        <p>读取课程、知识关联与固定源码…</p>
+        <h1>正在读取课程…</h1>
       </div>
     );
   if (!data || !step)
     return (
       <div className="boot-screen">
-        <h1>暂时无法连接本地服务</h1>
+        <h1>无法连接学习平台</h1>
         <p>{catalog.error?.message}</p>
+        <p>请检查 Docker Desktop 中的平台容器，或运行 pnpm dev。</p>
         <Button onClick={() => void catalog.refetch()}>重新连接</Button>
-        <code>pnpm dev</code>
       </div>
     );
   const index = data.lesson.steps.findIndex((entry) => entry.id === step.id);
-  const reference = step.code.find((entry) => entry.id === params.get('code')) || step.code[0];
+  const anchor =
+    step.diagram.anchors.find((entry) => entry.id === params.get('anchor')) ||
+    step.diagram.anchors[0];
+  const originalReference =
+    step.code.find((entry) => entry.id === params.get('code')) ||
+    step.code.find((entry) => entry.id === anchor.codeId)!;
+  const reference =
+    params.has('anchor') && originalReference.id === anchor.codeId
+      ? { ...originalReference, startLine: anchor.startLine, endLine: anchor.endLine }
+      : originalReference;
   const file = params.get('file') || reference.file;
   const verified = progress.data?.steps.filter((entry) => entry.status === 'verified').length || 0;
+  const updateParam = (name: string, value: string) => {
+    const next = new URLSearchParams(params);
+    if (value) next.set(name, value);
+    else next.delete(name);
+    setParams(next, { replace: true });
+  };
   const navigate = (
     stepId: string,
-    targetView = view,
+    targetView: View = 'guide',
     code?: CodeReference,
     targetFile?: string,
+    anchorId?: string,
   ) => {
-    const next = new URLSearchParams({ step: stepId, view: targetView });
+    const next = new URLSearchParams(params);
+    ['code', 'file', 'anchor'].forEach((name) => next.delete(name));
+    next.set('step', stepId);
+    next.set('view', targetView);
     if (code) next.set('code', code.id);
     if (targetFile) next.set('file', targetFile);
+    if (anchorId) next.set('anchor', anchorId);
     setParams(next);
     setLeftDrawer(false);
     setSelectedKnowledge(undefined);
   };
+  const selectAnchor = (target: LearningStep['diagram']['anchors'][number]) => {
+    navigate(
+      step.id,
+      'guide',
+      step.code.find((entry) => entry.id === target.codeId),
+      undefined,
+      target.id,
+    );
+    setSelectedKnowledge(target.knowledgeId);
+  };
+  const sourceSelection = (code: CodeReference, stepId: string) => {
+    const target = data.lesson.steps.find((entry) => entry.id === stepId)!;
+    const linked = target.diagram.anchors.find(
+      (entry) => entry.codeId === code.id && entry.startLine === code.startLine,
+    );
+    navigate(stepId, 'source', code, code.file, linked?.id);
+    if (linked) setSelectedKnowledge(linked.knowledgeId);
+  };
+  const openExperiment = () => {
+    navigate(step.id, 'guide', reference, undefined, anchor.id);
+    setExperimentOpen(true);
+    requestAnimationFrame(() => experimentRef.current?.scrollIntoView({ block: 'nearest' }));
+  };
   const selectGraphNode = (node: LearningGraph['nodes'][number]) => {
     if (node.kind === 'experiment') {
-      setExperimentOpen(true);
+      openExperiment();
       return;
     }
     if (node.knowledgeId) {
+      if (!node.stepIds.includes(step.id)) navigate(node.stepIds[0], 'graph');
       setSelectedKnowledge(node.knowledgeId);
       if (window.innerWidth <= 1100) setRightDrawer(true);
       return;
     }
     if (node.kind === 'step') {
-      navigate(node.stepIds[0], 'guide');
+      navigate(node.stepIds[0]);
       return;
     }
-    const targetStep =
+    const target =
       data.lesson.steps.find((entry) => entry.code.some((code) => code.id === node.codeId)) || step;
-    const targetCode =
-      targetStep.code.find((code) => code.id === node.codeId) || targetStep.code[0];
-    navigate(targetStep.id, 'source', targetCode, node.file);
+    navigate(
+      target.id,
+      'source',
+      target.code.find((code) => code.id === node.codeId) || target.code[0],
+      node.file,
+    );
   };
   const sidebar = (
     <div className="learning-sidebar">
       <div className="sidebar-heading">
-        <span className="section-eyebrow">YOUR LEARNING PATH</span>
-        <h2>从代码到理解</h2>
-        <p>同一个项目，一步步走到完整模型。</p>
+        <strong>学习路径</strong>
+        <small>nanochat · 从一次预测开始</small>
       </div>
       <div className="nav-mode">
-        <button
-          className={navigation === 'learning' ? 'active' : ''}
-          onClick={() => setNavigation('learning')}
-        >
-          <BookOpen size={14} />
-          教学逻辑
+        <button aria-pressed={navigation === 'learning'} onClick={() => setNavigation('learning')}>
+          课程
         </button>
-        <button
-          className={navigation === 'files' ? 'active' : ''}
-          onClick={() => setNavigation('files')}
-        >
-          <FileCode2 size={14} />
+        <button aria-pressed={navigation === 'files'} onClick={() => setNavigation('files')}>
           源码目录
         </button>
       </div>
       {navigation === 'learning' ? (
         <nav aria-label="教学逻辑树">
-          <div className="path-project">
-            <span className="project-mark">N</span>
-            <div>
-              <strong>nanochat</strong>
-              <small>源码驱动 · 从 0 到 1</small>
-            </div>
-            <ChevronDown size={14} />
+          <div className="chapter-label">01 · 一次完整预测</div>
+          <div className="step-list">
+            {data.lesson.steps.map((entry, order) => {
+              const status = progress.data?.steps.find((item) => item.stepId === entry.id)?.status;
+              return (
+                <button
+                  key={entry.id}
+                  className={`step-link ${entry.id === step.id && view !== 'review' ? 'active' : ''}`}
+                  aria-current={entry.id === step.id && view !== 'review' ? 'step' : undefined}
+                  onClick={() => navigate(entry.id)}
+                >
+                  <span className={`step-dot ${status || ''}`}>
+                    {status === 'verified' ? <Check size={12} /> : order + 1}
+                  </span>
+                  <span>
+                    {entry.title.slice(5).split('：')[0]}
+                    <small>{entry.title.slice(5).split('：')[1]}</small>
+                  </span>
+                </button>
+              );
+            })}
           </div>
-          <div className="chapter-active">
-            <div className="chapter-label">
-              <ChevronDown size={14} />
-              <strong>01 · 一次完整预测</strong>
-              <span>5 步</span>
-            </div>
-            <div className="step-list">
-              {data.lesson.steps.map((entry) => {
-                const status = progress.data?.steps.find(
-                  (item) => item.stepId === entry.id,
-                )?.status;
-                return (
-                  <button
-                    key={entry.id}
-                    className={`step-link ${entry.id === step.id ? 'active' : ''}`}
-                    aria-current={entry.id === step.id ? 'step' : undefined}
-                    onClick={() => navigate(entry.id, view)}
-                  >
-                    <span className={`step-dot ${status || ''}`}>
-                      {status === 'verified' ? (
-                        <Check size={10} />
-                      ) : entry.id === step.id ? (
-                        <span />
-                      ) : null}
-                    </span>
-                    <span>
-                      {entry.title.slice(5)}
-                      <small>{entry.subtitle}</small>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          {data.curriculum.slice(1).map((chapter) => (
-            <button
-              className="planned-chapter"
-              key={chapter.id}
-              onClick={() => setPlanned(chapter)}
-            >
-              <ChevronRight size={14} />
-              <span>{chapter.title}</span>
-              <small>计划中</small>
-            </button>
-          ))}
+          <button
+            className={`review-link ${view === 'review' ? 'active' : ''}`}
+            onClick={() => navigate(step.id, 'review')}
+          >
+            课程回顾
+          </button>
+          <details className="future-route">
+            <summary>后续路线 · 计划中</summary>
+            {data.curriculum.slice(1).map((chapter) => (
+              <details key={chapter.id}>
+                <summary>{chapter.title}</summary>
+                <p>{chapter.objective}</p>
+                <small>{chapter.files.join(' · ')}</small>
+              </details>
+            ))}
+          </details>
         </nav>
       ) : (
         <nav className="file-tree" aria-label="源码目录">
@@ -221,41 +259,36 @@ export default function App() {
           {['gpt.py', 'common.py', 'flash_attention.py', 'optim.py'].map((name) => (
             <button
               key={name}
-              className={file === `nanochat/${name}` && view === 'source' ? 'active' : ''}
               onClick={() => navigate(step.id, 'source', reference, `nanochat/${name}`)}
             >
               <FileCode2 size={15} />
               {name}
             </button>
           ))}
-          <p className="muted small">本课涉及的真实源码快照。完整仓库可在 GitHub 查看。</p>
         </nav>
       )}
       <div className="sidebar-bottom">
-        <div>
-          <span>样板课 · 客观项验证</span>
-          <strong>{verified} / 5</strong>
-        </div>
+        <span>客观项验证</span>
+        <strong>{verified} / 5</strong>
         <div className="progress-track">
           <span style={{ width: `${verified * 20}%` }} />
         </div>
-        <small>解释与迁移能力仍需独立复盘。</small>
-        <a href="https://github.com/karpathy/nanochat" target="_blank" rel="noreferrer">
-          <Github size={14} />
-          上游 nanochat
-          <ArrowUpRight size={13} />
-        </a>
       </div>
     </div>
   );
   const evidence = (
-    <EvidencePanel catalog={data} step={step} selectedKnowledge={selectedKnowledge} />
+    <EvidencePanel
+      key={step.id}
+      catalog={data}
+      step={step}
+      selectedKnowledge={selectedKnowledge || anchor.knowledgeId}
+    />
   );
   const resize = (side: 'left' | 'right', delta: number) =>
     preferences.set(
       side === 'left'
-        ? { leftWidth: Math.max(220, Math.min(380, preferences.leftWidth + delta)) }
-        : { rightWidth: Math.max(290, Math.min(470, preferences.rightWidth + delta)) },
+        ? { leftWidth: Math.max(200, Math.min(320, preferences.leftWidth + delta)) }
+        : { rightWidth: Math.max(260, Math.min(420, preferences.rightWidth + delta)) },
     );
   const separator = (side: 'left' | 'right') => (
     <div
@@ -266,7 +299,7 @@ export default function App() {
       aria-valuenow={side === 'left' ? preferences.leftWidth : preferences.rightWidth}
       tabIndex={0}
       onKeyDown={(event) => {
-        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        if (['ArrowLeft', 'ArrowRight'].includes(event.key)) {
           event.preventDefault();
           resize(side, (event.key === 'ArrowRight' ? 16 : -16) * (side === 'left' ? 1 : -1));
         }
@@ -279,6 +312,24 @@ export default function App() {
       onPointerUp={(event) => event.currentTarget.releasePointerCapture(event.pointerId)}
     />
   );
+  const experiment = (
+    <details
+      className="inline-experiment"
+      ref={experimentRef}
+      open={experimentOpen}
+      onToggle={(event) => setExperimentOpen(event.currentTarget.open)}
+    >
+      <summary>运行与观察 {run.data?.run.status === 'succeeded' ? '· 已有结果' : ''}</summary>
+      {experimentOpen && (
+        <ExperimentPanel
+          selectedId={runId}
+          onSelect={(id) => updateParam('run', id)}
+          length={length}
+          onLength={(value) => updateParam('length', String(value))}
+        />
+      )}
+    </details>
+  );
   return (
     <div className="app-shell">
       <a className="skip-link" href="#learning-main">
@@ -286,18 +337,8 @@ export default function App() {
       </a>
       <header className="topbar">
         <div className="brand">
-          <span className="brand-symbol">0→1</span>
-          <div>
-            <strong>
-              LLM <span>Zero to One</span>
-            </strong>
-            <small>从真实源码开始</small>
-          </div>
-          <span className="version-tag">v{product.version}</span>
-        </div>
-        <div className="topbar-center">
-          <span className="live-dot" />
-          本地学习工作区
+          <strong>LLM Zero to One</strong>
+          <span>交互教材</span>
         </div>
         <div className="topbar-actions">
           <Button
@@ -335,11 +376,11 @@ export default function App() {
             {preferences.theme === 'light' ? <Moon /> : <Sun />}
           </Button>
           <a
-            className="icon-button github-link"
+            className="icon-button"
             href="https://github.com/aiwindyjm/LLM-Zero-To-One"
-            aria-label="项目 GitHub"
             target="_blank"
             rel="noreferrer"
+            aria-label={`项目 GitHub · v${product.version}`}
           >
             <Github size={18} />
           </a>
@@ -357,20 +398,11 @@ export default function App() {
         <div className="left-panel">{sidebar}</div>
         {separator('left')}
         <main id="learning-main" className="center-panel">
-          <div className="workspace-breadcrumb">
-            <span>nanochat</span>
-            <ChevronRight size={12} />
-            <span>一次完整预测</span>
-            <div>
-              <GitCommitHorizontal size={14} />
-              <code>{data.lesson.commit.slice(0, 8)}</code>
-            </div>
-          </div>
           <div className="workspace-toolbar">
             <div className="view-tabs" role="tablist" aria-label="学习视图">
               {(
                 [
-                  { id: 'guide', label: '导学讲解', icon: BookOpen },
+                  { id: 'guide', label: '交互教材', icon: BookOpen },
                   { id: 'source', label: '真实源码', icon: Code2 },
                   { id: 'graph', label: '关系网络', icon: Network },
                 ] as const
@@ -381,17 +413,22 @@ export default function App() {
                   aria-selected={view === tab.id}
                   className={view === tab.id ? 'active' : ''}
                   onClick={() =>
-                    navigate(step.id, tab.id, reference, view === 'source' ? file : undefined)
+                    navigate(
+                      step.id,
+                      tab.id,
+                      reference,
+                      view === 'source' ? file : undefined,
+                      anchor.id,
+                    )
                   }
                 >
-                  <tab.icon size={16} />
-                  {tab.label}
+                  <tab.icon size={15} />
+                  <span>{tab.label}</span>
                 </button>
               ))}
             </div>
-            <Button variant="outline" size="sm" onClick={() => setExperimentOpen(true)}>
-              <FlaskConical size={15} />
-              <span>运行实验</span>
+            <Button variant="ghost" size="sm" onClick={openExperiment}>
+              打开实验
             </Button>
           </div>
           <div className={`learning-content content-${view}`} key={`${view}-${step.id}`}>
@@ -400,69 +437,90 @@ export default function App() {
                 step={step}
                 index={index}
                 total={data.lesson.steps.length}
-                onSource={(code) => navigate(step.id, 'source', code)}
-                onExperiment={() => setExperimentOpen(true)}
+                anchor={anchor}
+                onAnchor={selectAnchor}
+                onSource={(code) => sourceSelection(code, step.id)}
                 onNext={() =>
-                  navigate(data.lesson.steps[(index + 1) % data.lesson.steps.length].id, 'guide')
+                  navigate(
+                    data.lesson.steps[Math.min(index + 1, data.lesson.steps.length - 1)].id,
+                    index === data.lesson.steps.length - 1 ? 'review' : 'guide',
+                  )
                 }
+                run={run.data?.run}
+                previewLength={length}
+                onExperiment={openExperiment}
+                experiment={experiment}
               />
             ) : view === 'source' ? (
               <SourceView
                 reference={reference}
                 file={file}
                 steps={data.lesson.steps}
-                onReference={(code, stepId) => navigate(stepId, 'source', code)}
+                onReference={sourceSelection}
               />
-            ) : (
-              <Suspense fallback={<div className="empty-state">正在整理知识网络…</div>}>
+            ) : view === 'graph' ? (
+              <Suspense fallback={<p>整理关系网络…</p>}>
                 <GraphView graph={data.graph} stepId={step.id} onSelect={selectGraphNode} />
               </Suspense>
+            ) : (
+              <section className="course-review">
+                <h1>把五步串起来</h1>
+                <p>整数索引 → 向量查表 → 上下文变换 → 词表分数 → 取最后位置。</p>
+                <ol>
+                  {data.lesson.steps.map((entry) => (
+                    <li key={entry.id}>
+                      <button onClick={() => navigate(entry.id)}>{entry.title.slice(5)}</button>
+                      <span>
+                        {progress.data?.steps.find((item) => item.stepId === entry.id)?.status ===
+                        'verified'
+                          ? '客观项已验证'
+                          : '可以继续练习'}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                <h2>再想一想</h2>
+                <p>
+                  为什么随机初始化的模型也能给出合法
+                  ID，却不代表它已经学会语言？回到最后一步，可以记录你的解释。
+                </p>
+                <details>
+                  <summary>我的验收记录</summary>
+                  {progress.data?.attempts.length ? (
+                    progress.data.attempts.map((attempt) => (
+                      <div className="attempt-record" key={attempt.id}>
+                        <strong>
+                          {data.lesson.steps.find((entry) => entry.id === attempt.stepId)?.title}
+                        </strong>
+                        <p>
+                          {attempt.answer} · {attempt.objectivePassed ? '客观题正确' : '待复习'}
+                        </p>
+                        <p>{attempt.explanation || '未记录解释'}</p>
+                        <small>
+                          {new Date(attempt.createdAt).toLocaleString()} ·{' '}
+                          {attempt.runId ? '已关联实验' : '未关联实验'}
+                        </small>
+                      </div>
+                    ))
+                  ) : (
+                    <p>选择一步，先完成一个形状预测。</p>
+                  )}
+                </details>
+                <p className="muted">
+                  后续路线仍在建设中；本课验证计算流程，不宣称模型已有语言能力。
+                </p>
+              </section>
             )}
           </div>
-          <footer className="workspace-status">
-            <span>
-              <Circle size={8} fill="currentColor" />
-              固定源码 · 可追溯
-            </span>
-            <span>Python · {data.lesson.steps.length} 个学习步骤</span>
-          </footer>
         </main>
         {separator('right')}
         <div className="right-panel">{evidence}</div>
       </div>
-      <Dialog
-        open={experimentOpen}
-        onOpenChange={setExperimentOpen}
-        title="实验室 · 追踪一次真实前向计算"
-      >
-        <ExperimentPanel />
-      </Dialog>
       <Dialog open={leftDrawer} onOpenChange={setLeftDrawer} title="学习路线" side="left">
         {sidebar}
       </Dialog>
       <Dialog open={rightDrawer} onOpenChange={setRightDrawer} title="知识与资料" side="right">
         {evidence}
-      </Dialog>
-      <Dialog
-        open={Boolean(planned)}
-        onOpenChange={(open) => {
-          if (!open) setPlanned(null);
-        }}
-        title={planned?.title || '后续课程'}
-      >
-        <div className="planned-preview">
-          <span className="source-type">计划中 · 尚未交付</span>
-          <h2>{planned?.objective}</h2>
-          <p>将继续阅读同一个 nanochat 项目，沿下列源码展开。当前版本先完成第一节样板课。</p>
-          <ul>
-            {planned?.files.map((path) => (
-              <li key={path}>
-                <code>{path}</code>
-              </li>
-            ))}
-          </ul>
-          <p className="muted">详细里程碑见项目的课程地图和发布计划。</p>
-        </div>
       </Dialog>
     </div>
   );

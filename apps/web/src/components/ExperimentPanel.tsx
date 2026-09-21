@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, Cpu, Play, Square, Terminal, RefreshCw } from 'lucide-react';
+import { Play, Square, RefreshCw } from 'lucide-react';
 import {
   LESSON_ID,
   LESSON_VERSION,
@@ -19,8 +19,17 @@ const statusLabels = {
   cancelled: '已停止',
   interrupted: '已中断',
 };
-
-export function ExperimentPanel() {
+export function ExperimentPanel({
+  selectedId,
+  onSelect,
+  length,
+  onLength,
+}: {
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  length: number;
+  onLength: (length: number) => void;
+}) {
   const client = useQueryClient();
   const environment = useQuery({
     queryKey: ['environment'],
@@ -32,13 +41,10 @@ export function ExperimentPanel() {
     refetchInterval: 2500,
   });
   const [preset, setPreset] = useState<'cpu' | 'cuda'>('cpu');
-  const [length, setLength] = useState(8);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const id = selectedId || runs.data?.[0]?.id;
   const detail = useQuery({
-    queryKey: ['run', id],
-    queryFn: () => api<{ run: ExperimentRun; events: RunEvent[] }>(`/runs/${id}`),
-    enabled: Boolean(id),
+    queryKey: ['run', selectedId],
+    queryFn: () => api<{ run: ExperimentRun; events: RunEvent[] }>(`/runs/${selectedId}`),
+    enabled: Boolean(selectedId),
     refetchInterval: (query) =>
       ['running', 'queued'].includes(query.state.data?.run.status || '') ? 1000 : false,
   });
@@ -46,22 +52,22 @@ export function ExperimentPanel() {
   const run = detail.data?.run;
   useEffect(() => {
     setLiveEvents([]);
-    if (!id) return;
-    const source = new EventSource(`/api/runs/${id}/events`);
-    source.onmessage = (event) => {
+    if (!selectedId) return;
+    const stream = new EventSource(`/api/runs/${selectedId}/events`);
+    stream.onmessage = (event) => {
       const entry = JSON.parse(event.data) as RunEvent;
       setLiveEvents((current) =>
-        current.some((existing) => existing.id === entry.id) ? current : [...current, entry],
+        current.some((item) => item.id === entry.id) ? current : [...current, entry],
       );
     };
-    source.addEventListener('complete', () => {
-      source.close();
-      void client.invalidateQueries({ queryKey: ['run', id] });
+    stream.addEventListener('complete', () => {
+      stream.close();
+      void client.invalidateQueries({ queryKey: ['run', selectedId] });
       void client.invalidateQueries({ queryKey: ['runs'] });
     });
-    source.onerror = () => source.close();
-    return () => source.close();
-  }, [id, client]);
+    stream.onerror = () => stream.close();
+    return () => stream.close();
+  }, [selectedId, client]);
   const start = useMutation({
     mutationFn: () =>
       api<ExperimentRun>('/runs', {
@@ -72,15 +78,13 @@ export function ExperimentPanel() {
         sequenceLength: length,
       }),
     onSuccess: (created) => {
-      setSelectedId(created.id);
+      onSelect(created.id);
       void client.invalidateQueries({ queryKey: ['runs'] });
     },
   });
   const cancel = useMutation({
-    mutationFn: () => api(`/runs/${id}/cancel`, {}),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: ['run', id] });
-    },
+    mutationFn: () => api(`/runs/${selectedId}/cancel`, {}),
+    onSuccess: () => void client.invalidateQueries({ queryKey: ['run', selectedId] }),
   });
   const events = Array.from(
     new Map(
@@ -89,45 +93,9 @@ export function ExperimentPanel() {
   ).sort((first, second) => first.id - second.id);
   return (
     <div className="experiment-panel">
-      <p className="section-intro">直接运行固定版本的 nanochat.GPT。先预测形状，再观察真实结果。</p>
-      <div className="environment-box">
-        <Cpu size={19} />
-        <div>
-          <strong>
-            {environment.isPending
-              ? '正在检查本地环境…'
-              : environment.data?.ready
-                ? environment.data.gpuName || 'CPU 环境已就绪'
-                : '需要准备实验环境'}
-          </strong>
-          <p>
-            {environment.error?.message || environment.data?.message || '首次检查可能需要几秒。'}
-          </p>
-          {environment.data?.ready && (
-            <small>
-              Python {environment.data.python} · PyTorch {environment.data.torch}
-            </small>
-          )}
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="重新检查环境"
-          onClick={() => void environment.refetch()}
-        >
-          <RefreshCw />
-        </Button>
-      </div>
-      {!environment.data?.ready && !environment.isPending && (
-        <div className="callout">
-          <strong>先在项目终端运行一次</strong>
-          <code>pnpm experiment:setup</code>
-          <p>Windows 使用 WSL Ubuntu。环境准备会下载 Python/PyTorch；点击实验运行不会自动安装。</p>
-        </div>
-      )}
       <div className="experiment-controls">
         <label>
-          计算设备
+          设备
           <select
             aria-label="计算设备"
             value={preset}
@@ -140,152 +108,124 @@ export function ExperimentPanel() {
           </select>
         </label>
         <label>
-          序列长度 T
+          探索长度 T
           <select
             aria-label="序列长度"
             value={length}
-            onChange={(event) => setLength(Number(event.target.value))}
+            onChange={(event) => onLength(Number(event.target.value))}
           >
-            <option value={8}>8 Tokens</option>
-            <option value={16}>16 Tokens</option>
-            <option value={32}>32 Tokens</option>
+            {[8, 16, 32].map((value) => (
+              <option key={value} value={value}>
+                {value} Tokens
+              </option>
+            ))}
           </select>
         </label>
         <Button
           onClick={() => start.mutate()}
           disabled={start.isPending || !environment.data?.ready}
         >
-          <Play size={16} />
+          <Play />
           {start.isPending ? '提交中…' : '运行实验'}
         </Button>
+        {run && ['running', 'queued'].includes(run.status) && (
+          <Button variant="outline" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
+            <Square />
+            停止实验
+          </Button>
+        )}
       </div>
-      <div className="experiment-config">
-        <code>B=2</code>
-        <code>C=128</code>
-        <code>V=256</code>
-        <code>Layers=2</code>
-        <code>Seed=42</code>
-      </div>
-      {(start.error || cancel.error) && (
+      <p className="run-summary" role="status">
+        {run
+          ? `${statusLabels[run.status]} · ${run.preset.toUpperCase()} · T=${run.sequenceLength} · ${run.id.slice(0, 8)}`
+          : '先选长度，预测 Shape，再运行。自测证据使用 T=8。'}
+      </p>
+      {(start.error || cancel.error || detail.error || run?.error) && (
         <p role="alert" className="error-message">
-          {start.error?.message || cancel.error?.message}
+          {start.error?.message || cancel.error?.message || detail.error?.message || run?.error}
         </p>
       )}
-      <p className="muted small">
-        合成 Token ID · 随机初始化权重 · 本实验验证数据流，不代表语言能力。一次执行一个任务，最长
-        120 秒。
-      </p>
-      {runs.error && <p className="error-message">{runs.error.message}</p>}
-      {Boolean(runs.data?.length) && (
-        <label className="history-select">
+      {!environment.data?.ready && (
+        <p role="alert" className="environment-message">
+          {environment.isPending
+            ? '正在检查实验环境…'
+            : environment.error?.message ||
+              environment.data?.message ||
+              '环境不可用，请检查容器状态或运行 pnpm experiment:setup。'}
+        </p>
+      )}
+      {run?.result && (
+        <section className="experiment-result">
+          <h3>观察结果</h3>
+          <div className="shape-results">
+            {Object.entries(run.result.shapes).map(([name, shape]) => (
+              <div key={name}>
+                <span>{name}</span>
+                <code>({shape.join(', ')})</code>
+              </div>
+            ))}
+          </div>
+          <p className="muted small">
+            {run.result.trace
+              ? '结果已保存。上方图解选择“实测回放”，逐步查看这次运行的切片。'
+              : '历史结果保留；本次记录没有向量切片。'}
+          </p>
+        </section>
+      )}
+      <details className="experiment-details">
+        <summary>日志、历史与环境详情</summary>
+        <label>
           实验历史
           <select
             aria-label="实验历史"
-            value={id || ''}
-            onChange={(event) => setSelectedId(event.target.value)}
+            value={selectedId || ''}
+            onChange={(event) => onSelect(event.target.value)}
           >
+            <option value="">选择一条记录</option>
             {runs.data?.map((entry) => (
               <option key={entry.id} value={entry.id}>
-                {new Date(entry.createdAt).toLocaleTimeString()} · {entry.preset.toUpperCase()} · T=
+                {new Date(entry.createdAt).toLocaleString()} · {entry.preset.toUpperCase()} · T=
                 {entry.sequenceLength} · {statusLabels[entry.status]}
               </option>
             ))}
           </select>
         </label>
-      )}
-      {run && (
-        <>
-          <div className="run-heading">
-            <span className={`status-pill status-${run.status}`}>
-              {run.status === 'succeeded' && <CheckCircle2 size={14} />}
-              {statusLabels[run.status]}
-            </span>
-            <code>{run.id.slice(0, 8)}</code>
-            {['running', 'queued'].includes(run.status) && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => cancel.mutate()}
-                disabled={cancel.isPending}
-              >
-                <Square size={14} />
-                停止实验
-              </Button>
-            )}
-          </div>
-          <div className="terminal" role="log" aria-label="实验日志">
-            <div className="terminal-label">
-              <Terminal size={14} />
-              真实执行日志
-            </div>
-            {events.length ? (
-              events.map((event) => (
+        {runs.error && <p role="alert">{runs.error.message}</p>}
+        <div className="environment-summary">
+          <span>
+            {environment.data?.gpuName || 'CPU'} · Python {environment.data?.python || '—'} ·
+            PyTorch {environment.data?.torch || '—'}
+          </span>
+          <Button
+            size="icon"
+            variant="ghost"
+            aria-label="重新检查环境"
+            onClick={() => void environment.refetch()}
+          >
+            <RefreshCw />
+          </Button>
+        </div>
+        <div className="terminal" role="log" aria-label="实验日志">
+          {events.length
+            ? events.map((event) => (
                 <div key={event.id}>
-                  <span>{new Date(event.createdAt).toLocaleTimeString()}</span> {event.message}
+                  <time>{new Date(event.createdAt).toLocaleTimeString()}</time> {event.message}
                 </div>
               ))
-            ) : (
-              <div>等待进程输出…</div>
-            )}
-          </div>
-          {run.error && (
-            <p role="alert" className="error-message">
-              {run.error}
-            </p>
-          )}
-          {run.result && (
-            <section className="experiment-result">
-              <h3>观察结果</h3>
-              <div className="result-metrics">
-                <div>
-                  <span>设备</span>
-                  <strong>{run.result.device}</strong>
-                </div>
-                <div>
-                  <span>计算耗时</span>
-                  <strong>{run.result.durationSeconds.toFixed(3)} s</strong>
-                </div>
-                <div>
-                  <span>CUDA 峰值分配</span>
-                  <strong>
-                    {run.preset === 'cuda' ? `${run.result.peakMemoryMb} MB` : '不适用'}
-                  </strong>
-                </div>
-              </div>
-              <table>
-                <thead>
-                  <tr>
-                    <th>站点</th>
-                    <th>实测 Shape</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(run.result.shapes).map(([name, shape]) => (
-                    <tr key={name}>
-                      <td>
-                        <code>{name}</code>
-                      </td>
-                      <td>
-                        <code>({shape.join(', ')})</code>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p>
-                预测 ID：<code>{run.result.nextTokenIds.join(', ')}</code> · 概率和：
-                <code>
-                  {run.result.probabilitiesSum.map((value) => value.toFixed(5)).join(', ')}
-                </code>
-              </p>
-              <p className="muted small">
-                结果已存入本机数据库。耗时包含模型初始化与前向计算，不含 Python
-                启动；显存不等于整张显卡总占用。
-              </p>
-            </section>
-          )}
-        </>
-      )}
+            : '等待运行。'}
+        </div>
+        {run?.result && (
+          <p className="small">
+            初始化、采样与前向计算 {run.result.durationSeconds.toFixed(3)} s · CUDA 峰值张量分配{' '}
+            {run.preset === 'cuda' ? `${run.result.peakMemoryMb} MiB` : '不适用'} · 不包含 Python
+            导入和驱动显存。
+          </p>
+        )}
+        <p className="small muted">
+          同一时刻一个任务，最长 120 秒。停止会终止实验进程；刷新不影响运行。CUDA
+          不可用时不会静默改用 CPU。
+        </p>
+      </details>
     </div>
   );
 }

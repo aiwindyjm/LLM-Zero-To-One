@@ -123,9 +123,13 @@ export async function createApp(options: AppOptions) {
       (!run ||
         run.status !== 'succeeded' ||
         run.lessonId !== input.lessonId ||
-        run.lessonVersion !== input.lessonVersion)
+        run.lessonVersion !== input.lessonVersion ||
+        run.experimentId !== 'forward-trace' ||
+        run.sequenceLength !== 8 ||
+        run.result?.batchSize !== 2 ||
+        run.result?.commit !== catalog.lesson.commit)
     )
-      return reply.code(400).send({ message: '请关联本课程成功完成的实验。' });
+      return reply.code(400).send({ message: '请关联本课程固定版本、B=2、T=8 的成功实验。' });
     const objectivePassed = input.answer === rubric[input.stepId].answer;
     const attempt = store.saveAttempt({ ...input, runId: run?.id || null, objectivePassed });
     store.setProgress(

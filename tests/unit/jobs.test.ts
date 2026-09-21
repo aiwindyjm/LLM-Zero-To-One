@@ -41,6 +41,12 @@ it('serializes jobs and allows cancellation of a queued task', async () => {
   await expect.poll(() => store.getRun(first.id)?.status).toBe('succeeded');
   expect(store.getRun(second.id)?.status).toBe('cancelled');
 });
+it('preserves bounded trace evidence without requiring it for legacy results', async () => {
+  const { jobs, store } = setup('trace');
+  const run = jobs.enqueue(input);
+  await expect.poll(() => store.getRun(run.id)?.status).toBe('succeeded');
+  expect(store.getRun(run.id)?.result?.trace?.samples).toHaveLength(6);
+});
 it('cancels active processes and releases the execution slot', async () => {
   const { jobs, store } = setup('hang');
   const run = jobs.enqueue(input);

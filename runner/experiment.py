@@ -49,15 +49,26 @@ def execute(preset, sequence_length):
     model.init_weights()
     model.eval()
     shapes = {}
+    positions = [0, 1, sequence_length - 1]
+    samples = [{"batch": batch, "position": position, "tokenId": batch * sequence_length + position, "vectors": {}} for batch in range(2) for position in positions]
+
+    def sample_vectors(name, tensor):
+        for sample in samples:
+            sample["vectors"][name] = tensor[sample["batch"], sample["position"], :8].detach().float().cpu().tolist()
 
     def capture(name):
         def hook(_module, _inputs, output):
             shapes[name] = list(output.shape)
+            sample_vectors(name, output)
         return hook
 
     handles = [model.transformer.wte.register_forward_hook(capture("embedding"))]
     for index, block in enumerate(model.transformer.h):
+        def capture_input(_module, inputs, name=f"block_{index}_input"):
+            sample_vectors(name, inputs[0])
+        handles.append(block.register_forward_pre_hook(capture_input))
         handles.append(block.register_forward_hook(capture(f"block_{index}")))
+    handles.append(model.lm_head.register_forward_pre_hook(lambda _module, inputs: sample_vectors("hidden", inputs[0])))
     tokens = torch.arange(2 * sequence_length, device=preset, dtype=torch.long).reshape(2, sequence_length) % config.vocab_size
     shapes["input"] = list(tokens.shape)
     with torch.inference_mode():
@@ -65,6 +76,9 @@ def execute(preset, sequence_length):
         last_position = logits[:, -1, :]
         probabilities = torch.softmax(last_position, dim=-1)
         next_tokens = torch.argmax(last_position, dim=-1)
+        sample_vectors("logits", logits)
+        top_probabilities, top_ids = probabilities.topk(5, dim=-1)
+        candidates = [[{"tokenId": int(token), "logit": float(last_position[batch, token]), "probability": float(probability)} for token, probability in zip(top_ids[batch].cpu().tolist(), top_probabilities[batch].cpu().tolist())] for batch in range(2)]
     shapes["logits"] = list(logits.shape)
     shapes["last_position"] = list(last_position.shape)
     shapes["next_token"] = list(next_tokens.shape)
@@ -87,6 +101,7 @@ def execute(preset, sequence_length):
         "probabilitiesSum": probabilities.sum(-1).cpu().tolist(),
         "modelParameters": sum(parameter.numel() for parameter in model.parameters()),
         "seed": 42, "pythonVersion": platform.python_version(), "torchVersion": torch.__version__,
+        "trace": {"version": 1, "dimensionIndices": list(range(8)), "inputIds": tokens.cpu().tolist(), "samples": samples, "candidates": candidates},
     }
 
 
@@ -101,4 +116,3 @@ if __name__ == "__main__":
     except Exception as error:
         emit("error", message=f"{type(error).__name__}: {error}")
         sys.exit(1)
-

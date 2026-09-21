@@ -2,6 +2,12 @@
 
 ## Boundaries
 
+v0.2 adds authored `LearningStep.diagram` anchors and optional `ExperimentResult.trace` version 1 (six sampled positions, eight-dimensional slices, five candidates per batch). Legacy results remain valid. Assessments explicitly select B=2/T=8 evidence; explanation text is optional. Curriculum version 1.0.0 and previous learning records remain intact.
+
+The single learning container runs API and Python together. `LLM_CONTAINER=1` allows internal `0.0.0.0`; Compose publishes host loopback only. `LLM_RUNNER_PYTHON=/opt/runner/bin/python` selects the locked image environment. No Docker socket or network executor is introduced. Compose Watch uses a separate development volume. See [DOCKER.md](DOCKER.md).
+
+Use `pnpm data backup/export/import` with SQLite's backup API. Import requires a stopped target and preserves its previous database. UI location is remembered locally; learning facts remain in SQLite.
+
 - `apps/web`: React 19/Vite 8 SPA, React Router location state, TanStack Query requests, Zustand UI preferences, shadcn-style Radix primitives, Tailwind 4, Shiki, KaTeX, React Flow/Dagre.
 - `apps/api`: loopback-only Fastify service. Validates content at boot; serves API and production frontend. SQLite through Drizzle/better-sqlite3 stores learner facts.
 - `packages/contracts`: Zod runtime validation and shared TypeScript types. Client-supplied status/commands are never authoritative.
@@ -26,7 +32,7 @@ The graph is an authored teaching graph. `calls` requires a source reference. It
 
 ## Persistence
 
-Schema version 1 contains experiment runs/events, progress, assessment attempts and Tutor messages. Database migrations are applied transactionally before serving requests. The default database is `.local/data/learning.db`, ignored by Git. Completed records survive restarts; queued/running records become interrupted. Back up the data directory while the server is stopped.
+Schema version 1 contains experiment runs/events, progress, assessment attempts and Tutor messages. Database migrations are applied transactionally before serving requests. The default database is `.local/data/learning.db`, ignored by Git. Completed records survive restarts; queued/running records become interrupted. Use the SQLite backup command for consistent live snapshots.
 
 UI preferences may use localStorage. Learning facts must be written to the API. Objective verification requires a successful run from the same lesson version and a correct answer. Open explanations remain explicitly unreviewed.
 
@@ -44,7 +50,7 @@ GET `/api/catalog`, `/api/source?file=...`, `/api/progress`, `/api/environment`,
 
 POST `/api/progress`, `/api/assessments`, `/api/runs`, `/api/runs/:id/cancel`, `/api/tutor`.
 
-Writes require a per-process local session token from `/api/session`; requests with foreign browser origins or hostnames are rejected. Only loopback binding is supported. This is a single-user local service, not an authenticated multi-user deployment.
+Writes require a per-process local session token from `/api/session`; requests with foreign browser origins or hostnames are rejected. Native binding is loopback; containers bind internally with host-loopback publication. This is a single-user local service, not an authenticated multi-user deployment.
 
 ## Tutor
 

@@ -1,0 +1,60 @@
+name: llm-zero-to-one-dev
+services:
+  app:
+    image: llm-zero-to-one:dev
+    build:
+      context: .
+      target: development
+      args:
+        RUNNER_PROFILE: cpu
+    init: true
+    stop_grace_period: 15s
+    ports:
+      - '127.0.0.1:5173:5173'
+    volumes:
+      - development-data:/data
+    environment:
+      TUTOR_BASE_URL: ${TUTOR_BASE_URL:-https://api.openai.com/v1}
+      TUTOR_MODEL: ${TUTOR_MODEL:-}
+      TUTOR_API_KEY: ${TUTOR_API_KEY:-}
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/web/src
+          target: /app/apps/web/src
+        - action: sync+restart
+          path: ./apps/api/src
+          target: /app/apps/api/src
+        - action: sync+restart
+          path: ./packages/contracts/src
+          target: /app/packages/contracts/src
+        - action: sync+restart
+          path: ./content
+          target: /app/content
+        - action: sync+restart
+          path: ./runner
+          target: /app/runner
+          ignore: [uv.lock, pyproject.toml, __pycache__/, .pytest_cache/]
+        - action: rebuild
+          path: ./pnpm-lock.yaml
+        - action: rebuild
+          path: ./runner/uv.lock
+        - action: rebuild
+          path: ./runner/pyproject.toml
+        - action: rebuild
+          path: ./apps/web/vite.config.ts
+        - action: rebuild
+          path: ./Dockerfile
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./apps/api/package.json
+        - action: rebuild
+          path: ./apps/web/package.json
+        - action: rebuild
+          path: ./packages/contracts/package.json
+        - action: sync+restart
+          path: ./scripts
+          target: /app/scripts
+volumes:
+  development-data:

@@ -222,7 +222,7 @@ export class Store {
   ): AssessmentAttempt {
     const entry = { ...input, id: randomUUID(), createdAt: new Date().toISOString() };
     this.db.insert(attempts).values(entry).run();
-    return { ...entry, explanationStatus: 'recorded' };
+    return { ...entry, explanationStatus: entry.explanation.trim() ? 'recorded' : 'not_provided' };
   }
 
   listAttempts(lessonId: string, lessonVersion: string): AssessmentAttempt[] {
@@ -232,7 +232,12 @@ export class Store {
       .where(and(eq(attempts.lessonId, lessonId), eq(attempts.lessonVersion, lessonVersion)))
       .orderBy(desc(attempts.createdAt))
       .all()
-      .map((entry) => ({ ...entry, explanationStatus: 'recorded' as const }));
+      .map((entry) => ({
+        ...entry,
+        explanationStatus: entry.explanation.trim()
+          ? ('recorded' as const)
+          : ('not_provided' as const),
+      }));
   }
 
   saveMessage(

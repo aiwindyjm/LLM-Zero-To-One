@@ -12,6 +12,28 @@
       "subtitle": "Token IDs → 一个批次",
       "objective": "区分原始文本与 Token ID，解释批次大小 B 和序列长度 T。",
       "prerequisites": [],
+      "diagram": {
+        "kind": "input",
+        "prompt": "两行 Python 列表，为什么变成形状 (2, 8)？",
+        "anchors": [
+          {
+            "id": "grid",
+            "label": "序列与位置",
+            "codeId": "input-forward",
+            "knowledgeId": "shape",
+            "startLine": 459,
+            "endLine": 461
+          },
+          {
+            "id": "token",
+            "label": "一个 Token ID",
+            "codeId": "input-forward",
+            "knowledgeId": "token",
+            "startLine": 459,
+            "endLine": 461
+          }
+        ]
+      },
       "code": [
         {
           "id": "input-forward",
@@ -38,6 +60,28 @@
       "subtitle": "(B, T) → (B, T, C)",
       "objective": "说明查表如何保留批次与序列轴，并新增隐藏维度。",
       "prerequisites": ["input"],
+      "diagram": {
+        "kind": "embedding",
+        "prompt": "点击一个 ID：它怎样从表里取出 128 个数？",
+        "anchors": [
+          {
+            "id": "lookup",
+            "label": "按 ID 查表",
+            "codeId": "embedding-forward",
+            "knowledgeId": "embedding",
+            "startLine": 471,
+            "endLine": 473
+          },
+          {
+            "id": "table",
+            "label": "权重表在哪里定义",
+            "codeId": "embedding-init",
+            "knowledgeId": "embedding",
+            "startLine": 170,
+            "endLine": 177
+          }
+        ]
+      },
       "code": [
         {
           "id": "embedding-forward",
@@ -73,6 +117,36 @@
       "subtitle": "保持形状，改变表示",
       "objective": "找到 Block 的调用与实现，理解形状相同不代表计算没有发生。",
       "prerequisites": ["embedding"],
+      "diagram": {
+        "kind": "block",
+        "prompt": "走过两个 Block，形状没变，里面的数也没变吗？",
+        "anchors": [
+          {
+            "id": "block-0",
+            "label": "第一个 Block",
+            "codeId": "block-call",
+            "knowledgeId": "block",
+            "startLine": 499,
+            "endLine": 502
+          },
+          {
+            "id": "block-1",
+            "label": "第二个 Block",
+            "codeId": "block-call",
+            "knowledgeId": "block",
+            "startLine": 499,
+            "endLine": 502
+          },
+          {
+            "id": "inside",
+            "label": "看看 Block 内部",
+            "codeId": "block-method",
+            "knowledgeId": "block",
+            "startLine": 144,
+            "endLine": 153
+          }
+        ]
+      },
       "code": [
         {
           "id": "block-call",
@@ -104,7 +178,7 @@
       ],
       "knowledgeIds": ["block", "shape"],
       "sourceIds": ["nanochat-gpt", "attention-paper"],
-      "explanation": "## 一个 Block 是两次更新\n`Block.forward` 先做 Attention，再做 MLP，两次都通过残差加法保留输入路径：\n\n$$ x' = x + \\mathrm{Attention}(\\mathrm{norm}(x)) $$\n$$ y = x' + \\mathrm{MLP}(\\mathrm{norm}(x')) $$\n\n这里公式省略了位置编码、value embedding 等辅助参数，只概括这两条残差路径。**实际运行始终调用完整上游实现。**\n\nAttention 让当前位置获得允许访问的上下文信息；MLP 对每个位置的向量做非线性变换。输入输出都是 `(B,T,C)`，数值和信息却发生了变化。\n\n### 回到调用处\n`GPT.forward` 遍历两层 Block。这个版本还包含 residual scaling、x0 混合和 backout；它们是当前实现的具体设计，不等同于所有 Transformer 的通用结构。\n\n在关系网络中，展开 `GPT.forward → Block.forward`，再返回代码确认调用位置。",
+      "explanation": "## 一个 Block 是两次更新\n`Block.forward` 先做 Attention，再做 MLP，两次都通过残差加法保留输入路径：\n\n$$ x' = x + \\mathrm{Attention}(\\mathrm{norm}(x)) $$\n$$ y = x' + \\mathrm{MLP}(\\mathrm{norm}(x')) $$\n\n这里公式省略了位置编码、value embedding 等辅助参数，只概括这两条残差路径。**实际运行始终调用完整上游实现。**\n\nAttention 让当前位置获得允许访问的上下文信息；MLP 对每个位置的向量做非线性变换。输入输出都是 `(B,T,C)`，一般会更新表示。但本课未训练模型的 Attention/MLP 输出投影被初始化为零，因此回放中单个 Block 的输入输出可能相同；相同形状或数值不能代替对计算路径的理解。\n\n### 回到调用处\n`GPT.forward` 遍历两层 Block。这个版本还包含 residual scaling、x0 混合和 backout；它们是当前实现的具体设计，不等同于所有 Transformer 的通用结构。\n\n在关系网络中，展开 `GPT.forward → Block.forward`，再返回代码确认调用位置。",
       "input": "(2, 8, 128)",
       "output": "(2, 8, 128)",
       "question": "本课模型经过一个完整 Block 后，输出形状是什么？",
@@ -117,6 +191,20 @@
       "subtitle": "(B, T, C) → (B, T, V)",
       "objective": "区分隐藏表示、词表分数和概率。",
       "prerequisites": ["block"],
+      "diagram": {
+        "kind": "logits",
+        "prompt": "128 维表示，怎样变成 256 个候选分数？",
+        "anchors": [
+          {
+            "id": "projection",
+            "label": "投影到词表",
+            "codeId": "logits-forward",
+            "knowledgeId": "logits",
+            "startLine": 510,
+            "endLine": 515
+          }
+        ]
+      },
       "code": [
         {
           "id": "logits-forward",
@@ -143,6 +231,28 @@
       "subtitle": "预测一次，再接回输入",
       "objective": "解释最后位置的含义，区分得到合法输出和模型拥有语言能力。",
       "prerequisites": ["logits"],
+      "diagram": {
+        "kind": "prediction",
+        "prompt": "为什么只取最后一个位置来预测下一个 Token？",
+        "anchors": [
+          {
+            "id": "last",
+            "label": "取最后一个位置",
+            "codeId": "generation",
+            "knowledgeId": "sampling",
+            "startLine": 541,
+            "endLine": 547
+          },
+          {
+            "id": "probability",
+            "label": "分数变成概率",
+            "codeId": "generation",
+            "knowledgeId": "logits",
+            "startLine": 548,
+            "endLine": 555
+          }
+        ]
+      },
       "code": [
         {
           "id": "generation",

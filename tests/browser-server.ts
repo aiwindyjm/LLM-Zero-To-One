@@ -16,7 +16,7 @@ const { app } = await createApp({
       command: process.execPath,
       args: [
         resolve(root, 'tests/fixtures/worker.mjs'),
-        'success',
+        'trace',
         ...(diagnostic ? ['--diagnose'] : []),
       ],
     })),

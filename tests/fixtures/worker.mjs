@@ -59,6 +59,45 @@ createInterface({ input: process.stdin })
           seed: 42,
           pythonVersion: 'test-fixture',
           torchVersion: 'test-fixture',
+          ...(mode === 'trace'
+            ? {
+                trace: {
+                  version: 1,
+                  dimensionIndices: Array.from({ length: 8 }, (_, index) => index),
+                  inputIds: [0, 1].map((batch) =>
+                    Array.from({ length }, (_, position) => batch * length + position),
+                  ),
+                  samples: [0, 1].flatMap((batch) =>
+                    [0, 1, length - 1].map((position) => ({
+                      batch,
+                      position,
+                      tokenId: batch * length + position,
+                      vectors: Object.fromEntries(
+                        [
+                          'embedding',
+                          'block_0_input',
+                          'block_0',
+                          'block_1_input',
+                          'block_1',
+                          'hidden',
+                          'logits',
+                        ].map((name) => [
+                          name,
+                          Array.from({ length: 8 }, (_, index) => (index - 3) / 10),
+                        ]),
+                      ),
+                    })),
+                  ),
+                  candidates: [7, 9].map((tokenId) =>
+                    Array.from({ length: 5 }, (_, index) => ({
+                      tokenId: tokenId + index,
+                      probability: 0.004 - index * 0.0001,
+                      logit: 0.03 - index * 0.001,
+                    })),
+                  ),
+                },
+              }
+            : {}),
         },
       });
       emit({ kind: 'exit', code: 0 });

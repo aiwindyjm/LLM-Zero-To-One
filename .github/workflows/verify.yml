@@ -8,6 +8,20 @@ permissions:
   contents: read
 
 jobs:
+  container-cpu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - run: docker compose build app
+      - run: docker compose up -d --wait
+      - run: docker compose exec -T app pnpm experiment:verify
+      - run: docker compose exec -T app /opt/runner/bin/python -m pytest runner/tests -q
+      - run: docker compose exec -T app pnpm exec tsx scripts/container-smoke.ts
+      - run: docker compose restart app
+      - run: docker compose up -d --wait
+      - run: docker compose exec -T app node -e "fetch('http://127.0.0.1:4310/api/health').then(r=>{if(!r.ok)process.exit(1)})"
+      - if: always()
+        run: docker compose logs && docker compose down
   verify:
     runs-on: ubuntu-latest
     steps:

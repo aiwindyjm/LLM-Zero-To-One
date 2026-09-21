@@ -1,5 +1,7 @@
 # Setup and troubleshooting / 环境说明
 
+Recommended daily use: [Docker learning/development, automatic recovery, upgrades and backup (中英双语)](DOCKER.md). The native setup below remains supported. 推荐日常使用 Docker，下面保留原生 Linux/WSL 方式。
+
 ## Application / 平台
 
 Use Node.js 24 LTS and pnpm 10.34.5. Install the exact dependency lock with `pnpm install --frozen-lockfile`. `pnpm dev` starts a loopback API on 4310 and Vite on 5173. `pnpm build && pnpm start` serves the production application on 4310.

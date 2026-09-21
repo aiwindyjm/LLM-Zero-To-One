@@ -20,11 +20,13 @@ export function CodeLines({
   startLine = 1,
   selection,
   onSelect,
+  revealSelection = true,
 }: {
   content: string;
   startLine?: number;
   selection?: CodeReference;
   onSelect?: (line: number) => void;
+  revealSelection?: boolean;
 }) {
   const [highlighted, setHighlighted] = useState<string[]>([]);
   const container = useRef<HTMLDivElement>(null);
@@ -48,11 +50,11 @@ export function CodeLines({
     };
   }, [content]);
   useEffect(() => {
-    if (selectedStart && container.current)
+    if (revealSelection && selectedStart && container.current)
       container.current
         .querySelector(`[data-line="${selectedStart}"]`)
         ?.scrollIntoView({ block: 'center', behavior: 'instant' });
-  }, [selectedStart, content]);
+  }, [selectedStart, content, revealSelection]);
   const lines = content.replace(/\n$/, '').split('\n');
   return (
     <div className="code-lines" ref={container} role="region" aria-label="Python 源码">
@@ -114,7 +116,13 @@ export function SourceView({
           candidate.file === file && line >= candidate.startLine && line <= candidate.endLine,
       );
       if (code) {
-        onReference(code, step.id);
+        const anchor = step.diagram.anchors.find(
+          (item) => item.codeId === code.id && line >= item.startLine && line <= item.endLine,
+        );
+        onReference(
+          anchor ? { ...code, startLine: anchor.startLine, endLine: anchor.endLine } : code,
+          step.id,
+        );
         return;
       }
     }

@@ -10,6 +10,7 @@ permissions:
   pull-requests: write
   issues: write
   actions: write
+  packages: write
 
 concurrency:
   group: release-main
@@ -23,6 +24,8 @@ jobs:
   release:
     needs: acceptance
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.published.outputs.version }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -48,6 +51,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Upload artifacts to the release at this commit
+        id: published
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -57,7 +61,31 @@ jobs:
             if [ "$(git rev-parse "v$version^{commit}")" = "$(git rev-parse HEAD)" ]; then
               pnpm build
               pnpm release:package
-              gh release upload "v$version" .local/release/*.tar.gz .local/release/source-manifest.json .local/release/SHA256SUMS --clobber
+              gh release upload "v$version" .local/release/*.tar.gz .local/release/*.yaml .local/release/source-manifest.json .local/release/SHA256SUMS --clobber
               pnpm exec tsx scripts/release-notes.ts
+              echo "version=$version" >> "$GITHUB_OUTPUT"
             fi
           fi
+  images:
+    needs: release
+    if: needs.release.outputs.version != ''
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [cpu, gpu]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Build and publish tested container
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.release.outputs.version }}
+          PROFILE: ${{ matrix.profile }}
+        run: |
+          suffix=cpu
+          if [ "$PROFILE" = gpu ]; then suffix=cuda; fi
+          image="ghcr.io/aiwindyjm/llm-zero-to-one:$VERSION-$suffix"
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker build --build-arg RUNNER_PROFILE="$PROFILE" --target production --label org.opencontainers.image.source=https://github.com/aiwindyjm/LLM-Zero-To-One --label org.opencontainers.image.version="$VERSION" -t "$image" .
+          docker run --rm "$image" pnpm experiment:verify
+          docker push "$image"

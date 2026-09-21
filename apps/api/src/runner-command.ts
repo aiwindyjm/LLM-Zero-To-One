@@ -13,6 +13,9 @@ export function runnerCommand(
   args: string[] = [],
 ): RunnerCommand {
   const path = realpathSync(resolve(root, 'runner', script));
+  if (process.env.LLM_RUNNER_PYTHON && process.platform !== 'win32') {
+    return { command: process.env.LLM_RUNNER_PYTHON, args: [path, ...args] };
+  }
   if (process.platform === 'win32') {
     const distribution = process.env.LLM_WSL_DISTRO || 'Ubuntu';
     const linuxPath = execFileSync(

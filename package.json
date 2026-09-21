@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "tsx scripts/dev.ts",
+    "data": "tsx scripts/data.ts",
     "start": "node --env-file-if-exists=.env apps/api/dist/main.js",
     "build": "pnpm --filter @llm/web build && tsx scripts/build-api.ts",
     "typecheck": "tsc --noEmit",

@@ -6,7 +6,7 @@
 
 A local, open-source learning workspace built around **nanochat**. Follow a teaching tree instead of guessing where to start in an engineering directory. Move between guided explanations, pinned source code, and an interactive knowledge/code graph without losing context.
 
-## What the first release includes
+## Interactive textbook
 
 - A three-panel workspace: learning sequence → guide/source/graph → concepts and original references.
 - One complete five-step lesson tracing Token IDs through the real `GPT.forward` to next-token scores.
@@ -18,7 +18,15 @@ A local, open-source learning workspace built around **nanochat**. Follow a teac
 
 The remaining seven curriculum modules are **planned**, not completed courses. The sample runs a small configuration of the same real model class with random weights and synthetic IDs; it demonstrates data flow, not trained language ability.
 
-## Quick start
+## Docker quick start
+
+Start Docker Desktop with Linux containers. Clone this repository, then run `docker compose pull` and `docker compose up -d --no-build --wait`. Open http://127.0.0.1:4310. For NVIDIA GPUs, use `docker compose -f compose.yaml -f compose.cuda.yaml` for both commands. CPU is the default experiment device.
+
+The platform resumes with Docker Desktop (`unless-stopped`); dependencies are already in the image. [Bilingual Docker guide](docs/DOCKER.md) covers development hot reload, migration, backup, upgrades and troubleshooting.
+
+The five steps now link interactive tensor diagrams, source anchors and inline experiments. Real sampled values are labelled as replay; illustrative and historical data remain distinct. Shape checks explicitly select a B=2/T=8 run, and written reflections are optional.
+
+## Native quick start
 
 Requirements: Node.js 24 LTS, pnpm 10.34.5, Git. For experiments: Linux, or Windows with WSL Ubuntu; the setup command installs an isolated Python 3.12 environment. JavaScript-only reading works before Python setup.
 
@@ -71,16 +79,17 @@ pnpm release:check --message "feat(content): add a lesson"
 
 See [Contributing](CONTRIBUTING.md), [curriculum](docs/CURRICULUM.md), [release policy](docs/RELEASING.md), [setup details](docs/SETUP.md), and [validation evidence](docs/VALIDATION.md). Obsidian can open `content/` directly. Source hashes and graph references are checked by `pnpm content:check`.
 
-All learning records are stored in `.local/data/learning.db`. Stop the server before backing up `.local/data/`. Credentials, private learner records, environments, and checkpoints are excluded from Git and release artifacts.
+Native learning records are stored in `.local/data/learning.db`; Docker uses a named volume. Use `pnpm data backup <new-file>` or container export for a consistent SQLite snapshot. Credentials, private learner records, environments, and checkpoints are excluded from Git and release artifacts.
 
 ## Release roadmap
 
 | Version | Milestone                                                       |
 | ------- | --------------------------------------------------------------- |
 | 0.1     | Workspace, graph, complete sample, local runner, optional Tutor |
-| 0.2     | Data and core-model lessons                                     |
-| 0.3     | Small-scale training, checkpoints, evaluation                   |
-| 0.4     | SFT, inference, and chat                                        |
+| 0.2     | Interactive textbook, tensor replay, Docker workspace           |
+| 0.3     | Data and core-model lessons                                     |
+| 0.4     | Small-scale training, checkpoints, evaluation                   |
+| 0.5     | SFT, inference, and chat                                        |
 | 1.0     | Verified end-to-end curriculum                                  |
 
 Conventional Commits feed a release PR. Merging that PR after acceptance creates the GitHub Release; ordinary commits do not directly publish.

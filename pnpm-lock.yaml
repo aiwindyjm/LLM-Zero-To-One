@@ -83,6 +83,9 @@ importers:
       '@dagrejs/dagre':
         specifier: ^1.1.8
         version: 1.1.8
+      '@fontsource/jetbrains-mono':
+        specifier: 5.2.8
+        version: 5.2.8
       '@llm/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -98,6 +101,9 @@ importers:
       '@xyflow/react':
         specifier: ^12.10.0
         version: 12.11.6(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      chiron-hei-hk-webfont-truetype:
+        specifier: 2.6.9
+        version: 2.6.9
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -616,6 +622,9 @@ packages:
 
   '@fastify/static@8.3.0':
     resolution: {integrity: sha512-yKxviR5PH1OKNnisIzZKmgZSus0r2OZb8qCSbqmw34aolT4g3UlzYfeBRym+HJ1J471CR8e2ldNub4PubD1coA==}
+
+  '@fontsource/jetbrains-mono@5.2.8':
+    resolution: {integrity: sha512-6w8/SG4kqvIMu7xd7wt6x3idn1Qux3p9N62s6G3rfldOUYHpWcc2FKrqf+Vo44jRvqWj2oAtTHrZXEP23oSKwQ==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -1363,6 +1372,9 @@ packages:
 
   character-reference-invalid@2.0.1:
     resolution: {integrity: sha512-iBZ4F4wRbyORVsu0jPV7gXkOsGYjGHPmAyv+HiHG8gi5PtC9KI2j1+v8/tlibRvjoWX027ypmG/n0HtO5t7unw==}
+
+  chiron-hei-hk-webfont-truetype@2.6.9:
+    resolution: {integrity: sha512-rMXhcePqPFM+oIjy9VOe54HZxwB7WAWIcbdv0BK6Xe9wwPSpC2RTOrakuvdcHuQ7D18AmWnwD4OeHuMcbZfpKQ==}
 
   class-variance-authority@0.7.1:
     resolution: {integrity: sha512-Ka+9Trutv7G8M6WT6SeiRWz792K5qEqIGEGzXKhAE6xOWAY6pPH8U+9IY3oCMv6kqTmLsv7Xh/2w2RigkePMsg==}
@@ -3146,6 +3158,8 @@ snapshots:
       fastq: 1.20.3
       glob: 11.1.0
 
+  '@fontsource/jetbrains-mono@5.2.8': {}
+
   '@humanfs/core@0.19.2':
     dependencies:
       '@humanfs/types': 0.15.0
@@ -3822,6 +3836,8 @@ snapshots:
   character-entities@2.0.2: {}
 
   character-reference-invalid@2.0.1: {}
+
+  chiron-hei-hk-webfont-truetype@2.6.9: {}
 
   class-variance-authority@0.7.1:
     dependencies:

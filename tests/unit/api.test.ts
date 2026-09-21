@@ -42,6 +42,43 @@ async function headers(application: Awaited<ReturnType<typeof create>>) {
 }
 
 describe('local API', () => {
+  it('accepts optional reflection and rejects evidence from a different sequence length', async () => {
+    const application = await create();
+    const auth = await headers(application);
+    const response = await application.app.inject({
+      method: 'POST',
+      url: '/api/runs',
+      headers: auth,
+      payload: { ...request, sequenceLength: 16 },
+    });
+    const runId = response.json().id;
+    await expect.poll(() => application.store.getRun(runId)?.status).toBe('succeeded');
+    const payload = {
+      lessonId: request.lessonId,
+      lessonVersion: request.lessonVersion,
+      stepId: 'input',
+      answer: '(2, 8)',
+    };
+    const rejected = await application.app.inject({
+      method: 'POST',
+      url: '/api/assessments',
+      headers: auth,
+      payload: { ...payload, runId },
+    });
+    expect(rejected.statusCode).toBe(400);
+    expect(rejected.json().message).toContain('T=8');
+    const accepted = await application.app.inject({
+      method: 'POST',
+      url: '/api/assessments',
+      headers: auth,
+      payload,
+    });
+    expect(accepted.statusCode).toBe(200);
+    expect(accepted.json().attempt.explanationStatus).toBe('not_provided');
+    expect(
+      application.store.listAttempts(request.lessonId, request.lessonVersion)[0].explanationStatus,
+    ).toBe('not_provided');
+  });
   it('rejects foreign origins, DNS rebinding hosts, missing tokens, and traversal', async () => {
     const { app } = await create();
     expect(

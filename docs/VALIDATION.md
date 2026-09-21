@@ -2,6 +2,14 @@
 
 This document distinguishes checks that have actually run from remaining acceptance work. Browser fixtures are not model evidence.
 
+## v0.2 implementation checks
+
+- Five interactive diagrams, explicit assessment evidence selection, optional explanations and legacy results pass two Chromium flows at 1366×768 and 390×844. The Embedding first-screen screenshot was inspected: question, interactive lookup and source are visible together.
+- `pnpm check` passed; the subsequent lint cleanup passed lint and types without warnings. The suite has 20 unit/API tests at this checkpoint. Seven Python tests pass in the managed WSL environment, including consistent WAL backup and import preservation.
+- Real WSL CPU trace: 0.2442 seconds. RTX 3080 bfloat16 trace: 1.1746 seconds and 10.08 MiB peak tensor allocation. Six sampled positions and actual top-five probabilities are recorded; these are observations, not performance benchmarks.
+- Container builds, Compose Watch, migration, container GPU execution and publication are still pending at this checkpoint. Docker Hub resolution failed locally; an official public ECR mirror supplied the Node base, and the local Docker build uses the existing host proxy for dependency downloads. No unrelated container was stopped.
+- Docker Desktop itself has not been restarted because it hosts other applications. A project-container restart and configured restart-policy inspection do not claim to verify a Desktop restart.
+
 ## Executed during initial implementation
 
 - Source validation: five teaching steps, 24 graph nodes, all pinned source SHA-256 checksums, source ranges, knowledge references and prerequisite graphs passed.

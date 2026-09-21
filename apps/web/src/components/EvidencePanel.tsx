@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowUpRight, BookOpen, FileText, MessageCircle, Send, Square } from 'lucide-react';
+import { ArrowUpRight, BookOpen, MessageCircle, Send, Square } from 'lucide-react';
 import {
   LESSON_ID,
   LESSON_VERSION,
@@ -141,6 +141,9 @@ export function EvidencePanel({
   selectedKnowledge?: string;
 }) {
   const [tab, setTab] = useState<'knowledge' | 'tutor'>('knowledge');
+  useEffect(() => {
+    setTab('knowledge');
+  }, [selectedKnowledge]);
   const knowledge = catalog.knowledge.filter((item) => step.knowledgeIds.includes(item.id));
   return (
     <aside className="evidence-panel" aria-label="知识与资料">
@@ -151,61 +154,55 @@ export function EvidencePanel({
         </button>
         <button className={tab === 'tutor' ? 'active' : ''} onClick={() => setTab('tutor')}>
           <MessageCircle size={15} />
-          AI 导师
+          提问
         </button>
       </div>
       {tab === 'tutor' ? (
         <Tutor key={step.id} step={step} />
       ) : (
         <div className="evidence-content">
-          <div className="section-eyebrow">KNOWLEDGE NOTES</div>
-          <h2>理解代码背后的原理</h2>
-          <p className="muted small">随当前学习步骤关联 · 已审核教材</p>
           {knowledge.map((item) => (
-            <section
+            <details
               className={`knowledge-entry ${selectedKnowledge === item.id ? 'knowledge-selected' : ''}`}
               key={item.id}
+              open={selectedKnowledge === item.id}
             >
-              <h3>{item.title}</h3>
+              <summary>{item.title}</summary>
               <Markdown>{item.body}</Markdown>
               <div className="misconception">
                 <strong>容易混淆</strong>
                 <p>{item.misconception}</p>
               </div>
-            </section>
+            </details>
           ))}
-          <div className="sources-heading">
-            <FileText size={16} />
-            <h3>回到原始资料</h3>
-          </div>
-          {catalog.sources
-            .filter((source) => step.sourceIds.includes(source.id))
-            .map((source) => (
-              <a
-                className="source-link"
-                key={source.id}
-                href={source.url}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <span className={`source-type type-${source.type}`}>
-                  {source.type === 'source'
-                    ? '源码'
-                    : source.type === 'official'
-                      ? '官方文档'
-                      : '论文'}
-                </span>
-                <strong>
-                  {source.title}
-                  <ArrowUpRight size={14} />
-                </strong>
-                <p>{source.relevance}</p>
-                <small>{source.author}</small>
-              </a>
-            ))}
-          <div className="evidence-footnote">
-            源码说明当前版本的行为。论文提供背景；设计动机没有直接依据时，应作为推断。
-          </div>
+          <details className="reference-library">
+            <summary>来源与延伸阅读</summary>
+            {catalog.sources
+              .filter((source) => step.sourceIds.includes(source.id))
+              .map((source) => (
+                <a
+                  className="source-link"
+                  key={source.id}
+                  href={source.url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <span className={`source-type type-${source.type}`}>
+                    {source.type === 'source'
+                      ? '源码'
+                      : source.type === 'official'
+                        ? '官方文档'
+                        : '论文'}
+                  </span>
+                  <strong>
+                    {source.title}
+                    <ArrowUpRight size={14} />
+                  </strong>
+                  <p>{source.relevance}</p>
+                  <small>{source.author}</small>
+                </a>
+              ))}
+          </details>
         </div>
       )}
     </aside>

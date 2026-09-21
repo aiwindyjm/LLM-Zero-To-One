@@ -1,0 +1,22 @@
+name: llm-zero-to-one
+services:
+  app:
+    image: ghcr.io/aiwindyjm/llm-zero-to-one:${LLM_VERSION:-0.2.0}-cpu
+    build:
+      context: .
+      target: production
+      args:
+        RUNNER_PROFILE: cpu
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 15s
+    ports:
+      - '127.0.0.1:4310:4310'
+    volumes:
+      - learning-data:/data
+    environment:
+      TUTOR_BASE_URL: ${TUTOR_BASE_URL:-https://api.openai.com/v1}
+      TUTOR_MODEL: ${TUTOR_MODEL:-}
+      TUTOR_API_KEY: ${TUTOR_API_KEY:-}
+volumes:
+  learning-data:

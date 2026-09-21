@@ -99,6 +99,22 @@ export function validateContent(root: string): Catalog {
   const knowledgeIds = new Set(catalog.knowledge.map((item) => item.id));
   const stepIds = new Set(steps.map((step) => step.id));
   for (const step of steps) {
+    if (step.diagram.kind !== step.id) throw new Error(`Diagram kind mismatch: ${step.id}`);
+    ensureUnique(
+      step.diagram.anchors.map((anchor) => anchor.id),
+      'diagram anchors',
+    );
+    for (const anchor of step.diagram.anchors) {
+      const code = step.code.find((reference) => reference.id === anchor.codeId);
+      if (
+        !code ||
+        !step.knowledgeIds.includes(anchor.knowledgeId) ||
+        anchor.startLine < code.startLine ||
+        anchor.endLine > code.endLine ||
+        anchor.endLine < anchor.startLine
+      )
+        throw new Error(`Invalid diagram anchor: ${anchor.id}`);
+    }
     if (
       step.knowledgeIds.some((id) => !knowledgeIds.has(id)) ||
       step.sourceIds.some((id) => !sourceIds.has(id))

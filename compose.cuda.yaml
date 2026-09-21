@@ -1,0 +1,7 @@
+services:
+  app:
+    image: ghcr.io/aiwindyjm/llm-zero-to-one:${LLM_VERSION:-0.2.0}-cuda
+    build:
+      args:
+        RUNNER_PROFILE: gpu
+    gpus: all

@@ -4,7 +4,10 @@ import { findRoot } from './paths.js';
 
 const root = findRoot();
 const host = process.env.HOST || '127.0.0.1';
-if (!['127.0.0.1', 'localhost'].includes(host))
+if (
+  !['127.0.0.1', 'localhost'].includes(host) &&
+  !(process.env.LLM_CONTAINER === '1' && host === '0.0.0.0')
+)
   throw new Error('This local execution service must bind to loopback.');
 const { app } = await createApp({
   root,

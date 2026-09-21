@@ -1,0 +1,197 @@
+Copyright 2023-2026 Tamcy (https://github.com
+/chiron-fonts/chiron-hei-hk).
+
+Based on Sourc
+e Han Sans, Copyright 2014-2025 Adobe (http:/
+/www.adobe.com/).
+
+This Font Software is lice
+nsed under the SIL Open Font License,
+Version
+ 1.1.
+
+This Font Software is licensed under t
+he SIL Open Font License, Version 1.1.
+This l
+icense is copied below, and is also available
+ with a FAQ at:
+https://openfontlicense.org
+
+
+---------------------------------------------
+--------------
+SIL OPEN FONT LICENSE Version 
+1.1 - 26 February 2007
+----------------------
+-------------------------------------
+
+PREAMB
+LE
+The goals of the Open Font License (OFL) a
+re to stimulate worldwide
+development of coll
+aborative font projects, to support the font 
+creation
+efforts of academic and linguistic c
+ommunities, and to provide a free and
+open fr
+amework in which fonts may be shared and impr
+oved in partnership
+with others.
+
+The OFL all
+ows the licensed fonts to be used, studied, m
+odified and
+redistributed freely as long as t
+hey are not sold by themselves. The
+fonts, in
+cluding any derivative works, can be bundled,
+ embedded,
+redistributed and/or sold with any
+ software provided that any reserved
+names ar
+e not used by derivative works. The fonts and
+ derivatives,
+however, cannot be released und
+er any other type of license. The
+requirement
+ for fonts to remain under this license does 
+not apply
+to any document created using the f
+onts or their derivatives.
+
+DEFINITIONS
+"Font
+ Software" refers to the set of files release
+d by the Copyright
+Holder(s) under this licen
+se and clearly marked as such. This may
+inclu
+de source files, build scripts and documentat
+ion.
+
+"Reserved Font Name" refers to any name
+s specified as such after the
+copyright state
+ment(s).
+
+"Original Version" refers to the co
+llection of Font Software components as
+distr
+ibuted by the Copyright Holder(s).
+
+"Modified
+ Version" refers to any derivative made by ad
+ding to, deleting,
+or substituting -- in part
+ or in whole -- any of the components of the
+
+Original Version, by changing formats or by p
+orting the Font Software to a
+new environment
+.
+
+"Author" refers to any designer, engineer,
+ programmer, technical
+writer or other person
+ who contributed to the Font Software.
+
+PERMI
+SSION & CONDITIONS
+Permission is hereby grant
+ed, free of charge, to any person obtaining
+a
+ copy of the Font Software, to use, study, co
+py, merge, embed, modify,
+redistribute, and s
+ell modified and unmodified copies of the Fon
+t
+Software, subject to the following conditio
+ns:
+
+1) Neither the Font Software nor any of 
+its individual components,
+in Original or Mod
+ified Versions, may be sold by itself.
+
+2) Or
+iginal or Modified Versions of the Font Softw
+are may be bundled,
+redistributed and/or sold
+ with any software, provided that each copy
+c
+ontains the above copyright notice and this l
+icense. These can be
+included either as stand
+-alone text files, human-readable headers or
+
+in the appropriate machine-readable metadata 
+fields within text or
+binary files as long as
+ those fields can be easily viewed by the use
+r.
+
+3) No Modified Version of the Font Softwa
+re may use the Reserved Font
+Name(s) unless e
+xplicit written permission is granted by the 
+corresponding
+Copyright Holder. This restrict
+ion only applies to the primary font name as
+
+presented to the users.
+
+4) The name(s) of th
+e Copyright Holder(s) or the Author(s) of the
+ Font
+Software shall not be used to promote, 
+endorse or advertise any
+Modified Version, ex
+cept to acknowledge the contribution(s) of th
+e
+Copyright Holder(s) and the Author(s) or wi
+th their explicit written
+permission.
+
+5) The
+ Font Software, modified or unmodified, in pa
+rt or in whole,
+must be distributed entirely 
+under this license, and must not be
+distribut
+ed under any other license. The requirement f
+or fonts to
+remain under this license does no
+t apply to any document created
+using the Fon
+t Software.
+
+TERMINATION
+This license becomes
+ null and void if any of the above conditions
+ are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE I
+S PROVIDED "AS IS", WITHOUT WARRANTY OF ANY K
+IND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LI
+MITED TO ANY WARRANTIES OF
+MERCHANTABILITY, F
+ITNESS FOR A PARTICULAR PURPOSE AND NONINFRIN
+GEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OT
+HER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HO
+LDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHE
+R LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, 
+INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGE
+S, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
+OTHERWISE, ARISING
+FROM, OUT OF THE USE OR IN
+ABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHE
+R DEALINGS IN THE FONT SOFTWARE.

@@ -12,7 +12,13 @@ const existing = execFileSync('gh', ['release', 'view', tag, '--json', 'body', '
 });
 const marker = '<!-- installation-and-scope -->';
 const body = `${existing.split(marker)[0].trim()}\n\n${marker}
-## Install / 安装
+## Docker / 容器安装
+
+Download \`compose.yaml\` and optionally \`compose.cuda.yaml\`. Run \`docker compose pull\` then \`docker compose up -d --no-build --wait\`. For CUDA, use both files with \`-f compose.yaml -f compose.cuda.yaml\`. Images: \`ghcr.io/aiwindyjm/llm-zero-to-one:${version}-cpu\` and \`${version}-cuda\`.
+
+See [Docker guide / 容器指南](${repository}/blob/${tag}/docs/DOCKER.md) for automatic recovery, development, backup and upgrades. Images are published by subsequent jobs in this same release workflow; check workflow completion before pulling.
+
+## Native install / 原生安装
 
 Download \`llm-zero-to-one-${version}.tar.gz\` and verify it against \`SHA256SUMS\`. Extract the archive, install Node.js 24 and pnpm 10.34.5, then run:
 

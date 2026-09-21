@@ -35,6 +35,22 @@ export const learningStepSchema = z.object({
   question: z.string(),
   choices: z.array(z.string()),
   experimentId: z.string(),
+  diagram: z.object({
+    kind: z.enum(['input', 'embedding', 'block', 'logits', 'prediction']),
+    prompt: z.string(),
+    anchors: z
+      .array(
+        z.object({
+          id: z.string(),
+          label: z.string(),
+          codeId: z.string(),
+          knowledgeId: z.string(),
+          startLine: z.number().int().positive(),
+          endLine: z.number().int().positive(),
+        }),
+      )
+      .min(1),
+  }),
 });
 export type LearningStep = z.infer<typeof learningStepSchema>;
 
@@ -119,22 +135,91 @@ export const experimentDefinitionSchema = z.object({
 });
 export type ExperimentDefinition = z.infer<typeof experimentDefinitionSchema>;
 
-export const experimentResultSchema = z.object({
-  commit: z.literal(UPSTREAM_SHA),
-  device: z.string(),
-  dtype: z.string(),
-  durationSeconds: z.number().nonnegative(),
-  peakMemoryMb: z.number().nonnegative(),
-  sequenceLength: z.number().int(),
-  batchSize: z.literal(2),
-  shapes: z.record(z.string(), z.array(z.number().int())),
-  nextTokenIds: z.array(z.number().int()),
-  probabilitiesSum: z.array(z.number()),
-  modelParameters: z.number().int(),
-  seed: z.number().int(),
-  pythonVersion: z.string(),
-  torchVersion: z.string(),
+const vectorSlice = z.array(z.number()).length(8);
+export const experimentTraceSchema = z.object({
+  version: z.literal(1),
+  dimensionIndices: z.array(z.number().int()).length(8),
+  inputIds: z.array(z.array(z.number().int().min(0).max(255)).min(8).max(32)).length(2),
+  samples: z
+    .array(
+      z.object({
+        batch: z.number().int().min(0).max(1),
+        position: z.number().int().min(0).max(31),
+        tokenId: z.number().int().min(0).max(255),
+        vectors: z.object({
+          embedding: vectorSlice,
+          block_0_input: vectorSlice,
+          block_0: vectorSlice,
+          block_1_input: vectorSlice,
+          block_1: vectorSlice,
+          hidden: vectorSlice,
+          logits: vectorSlice,
+        }),
+      }),
+    )
+    .length(6),
+  candidates: z
+    .array(
+      z
+        .array(
+          z.object({
+            tokenId: z.number().int().min(0).max(255),
+            logit: z.number(),
+            probability: z.number().min(0).max(1),
+          }),
+        )
+        .length(5),
+    )
+    .length(2),
 });
+export type ExperimentTrace = z.infer<typeof experimentTraceSchema>;
+export const experimentResultSchema = z
+  .object({
+    commit: z.literal(UPSTREAM_SHA),
+    device: z.string(),
+    dtype: z.string(),
+    durationSeconds: z.number().nonnegative(),
+    peakMemoryMb: z.number().nonnegative(),
+    sequenceLength: z.number().int(),
+    batchSize: z.literal(2),
+    shapes: z.record(z.string(), z.array(z.number().int())),
+    nextTokenIds: z.array(z.number().int()),
+    probabilitiesSum: z.array(z.number()),
+    modelParameters: z.number().int(),
+    seed: z.number().int(),
+    pythonVersion: z.string(),
+    torchVersion: z.string(),
+    trace: experimentTraceSchema.optional(),
+  })
+  .superRefine((result, context) => {
+    const trace = result.trace;
+    if (!trace) return;
+    const positions = [0, 1, result.sequenceLength - 1];
+    const expected = new Set(
+      [0, 1].flatMap((batch) => positions.map((position) => `${batch}:${position}`)),
+    );
+    const actual = new Set(trace.samples.map((sample) => `${sample.batch}:${sample.position}`));
+    if (
+      trace.inputIds.some((row) => row.length !== result.sequenceLength) ||
+      trace.dimensionIndices.some((dimension, index) => dimension !== index) ||
+      actual.size !== expected.size ||
+      [...expected].some((key) => !actual.has(key)) ||
+      trace.samples.some(
+        (sample) => trace.inputIds[sample.batch]?.[sample.position] !== sample.tokenId,
+      ) ||
+      trace.candidates.some(
+        (candidates, batch) =>
+          candidates[0].tokenId !== result.nextTokenIds[batch] ||
+          new Set(candidates.map((candidate) => candidate.tokenId)).size !== 5 ||
+          candidates.reduce((sum, candidate) => sum + candidate.probability, 0) > 1.00001,
+      )
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['trace'],
+        message: 'Trace does not match result dimensions, sampled positions or predictions',
+      });
+  });
 export type ExperimentResult = z.infer<typeof experimentResultSchema>;
 export const runStatusSchema = z.enum([
   'queued',
@@ -168,7 +253,7 @@ export interface AssessmentAttempt {
   answer: string;
   explanation: string;
   objectivePassed: boolean;
-  explanationStatus: 'recorded';
+  explanationStatus: 'recorded' | 'not_provided';
   runId: string | null;
   createdAt: string;
 }
@@ -178,7 +263,7 @@ export const assessmentRequestSchema = z
     lessonVersion: z.literal(LESSON_VERSION),
     stepId: z.string(),
     answer: z.string().max(120),
-    explanation: z.string().min(12, '请用至少 12 个字符记录你的理解').max(4000),
+    explanation: z.string().trim().max(4000).default(''),
     runId: z.string().optional(),
   })
   .strict();

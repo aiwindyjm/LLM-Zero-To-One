@@ -27,7 +27,9 @@ copyFileSync(
   resolve(root, 'data/upstream/manifest.json'),
   resolve(directory, 'source-manifest.json'),
 );
-const files = [`${name}.gz`, 'source-manifest.json'];
+const composeFiles = ['compose.yaml', 'compose.cuda.yaml', 'compose.dev.yaml'];
+for (const file of composeFiles) copyFileSync(resolve(root, file), resolve(directory, file));
+const files = [`${name}.gz`, 'source-manifest.json', ...composeFiles];
 writeFileSync(
   resolve(directory, 'SHA256SUMS'),
   files
