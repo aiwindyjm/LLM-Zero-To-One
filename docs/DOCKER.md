@@ -6,6 +6,10 @@
 
 Start Docker Desktop using Linux containers. Windows GPU support requires WSL2 and compatible NVIDIA drivers. Daily use needs no Ubuntu terminal.
 
+首次构建 CUDA 镜像前，检查 **Docker 数据盘所在的宿主机分区**，不只是源码目录。建议至少预留 30 GB 可用空间供下载、解压、构建缓存和镜像导出；构建多个版本需要更多。空间不足时先通过 Docker Desktop 的 Disk image location 设置迁移到容量充足的磁盘，迁移会中断其他容器。不要删除 Docker 数据盘或学习卷来“修复”空间问题。
+
+Before building CUDA images, check free space on the **host partition containing Docker's disk image**, not only the source directory. Reserve at least 30 GB for downloads, extraction, cache and export; multiple builds need more. If necessary, relocate the disk through Docker Desktop's Disk image location setting before building; this interrupts other containers. Never delete the Docker disk or learning volumes to resolve low space.
+
 ```bash
 git clone https://github.com/aiwindyjm/LLM-Zero-To-One.git
 cd LLM-Zero-To-One

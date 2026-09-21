@@ -12,6 +12,7 @@ This document distinguishes checks that have actually run from remaining accepta
 - Compose Watch was exercised with temporary frontend and curriculum edits: Vite served the updated module and the restarted API returned the updated curriculum. All temporary edits were reverted. Learning/development volumes are distinct; the development container was stopped after validation.
 - Linux CI passed application/browser tests, the real CPU experiment and clean container build/execution. Container GPU execution and publication remain pending at this checkpoint. Docker Hub resolution failed locally; an official public ECR mirror supplied the Node base. NVIDIA libraries now resolve from PyPI at unchanged versions; PyTorch still uses its explicit official index. No unrelated container was stopped.
 - Docker Desktop itself has not been restarted because it hosts other applications. A project-container restart and configured restart-policy inspection do not claim to verify a Desktop restart.
+- Local CUDA image build hit a host storage failure: C: reached zero free bytes, and Docker's approximately 64 GB virtual disk became read-only during dependency extraction. Container CUDA acceptance and publication are held pending storage recovery; the successful native WSL GPU run is not substituted for container evidence. Native and container database backups were exported to E: before this failure.
 
 ## Executed during initial implementation
 
