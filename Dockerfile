@@ -14,8 +14,8 @@ COPY apps/web/package.json ./apps/web/
 COPY packages/contracts/package.json ./packages/contracts/
 RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources && apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 install -y --no-install-recommends g++ make && rm -rf /var/lib/apt/lists/*
 RUN --mount=type=cache,target=/pnpm/store pnpm install --frozen-lockfile --store-dir=/pnpm/store
-COPY . .
-RUN mkdir -p /data && chown -R node:node /data /app
+COPY --chown=node:node . .
+RUN mkdir -p /data && chown node:node /data /app /app/node_modules /app/apps/web/node_modules
 
 FROM runtime AS development
 USER node
