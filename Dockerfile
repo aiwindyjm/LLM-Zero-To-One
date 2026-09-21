@@ -7,13 +7,13 @@ WORKDIR /app
 ENV LLM_CONTAINER=1 HOST=0.0.0.0 LLM_DATA_DIR=/data LLM_RUNNER_PYTHON=/opt/runner/bin/python UV_PROJECT_ENVIRONMENT=/opt/runner PYTHONDONTWRITEBYTECODE=1
 COPY runner/pyproject.toml runner/uv.lock ./runner/
 ARG RUNNER_PROFILE=cpu
-RUN uv sync --project runner --python /usr/local/bin/python3 --extra ${RUNNER_PROFILE} --frozen && uv cache clean
+RUN --mount=type=cache,target=/root/.cache/uv UV_HTTP_TIMEOUT=600 UV_CONCURRENT_DOWNLOADS=4 uv sync --project runner --python /usr/local/bin/python3 --extra ${RUNNER_PROFILE} --frozen --link-mode=copy
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json ./apps/api/
 COPY apps/web/package.json ./apps/web/
 COPY packages/contracts/package.json ./packages/contracts/
-RUN apt-get update && apt-get install -y --no-install-recommends g++ make && rm -rf /var/lib/apt/lists/*
-RUN pnpm install --frozen-lockfile
+RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources && apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 install -y --no-install-recommends g++ make && rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,target=/pnpm/store pnpm install --frozen-lockfile --store-dir=/pnpm/store
 COPY . .
 RUN mkdir -p /data && chown -R node:node /data /app
 
